@@ -1,0 +1,85 @@
+﻿using JulyGrocerAPI.Entities;
+using JulyGrocerAPI.Models;
+using Microsoft.AspNetCore.Mvc;
+
+namespace JulyGrocerAPI.Controllers
+{
+    [ApiController]
+    [Route("api/category")]
+    public class CategoryController : Controller
+    {
+        [HttpGet]
+        public Result GetCategories()
+        {
+            var result = new Result();
+
+            try
+            {
+                var categories = new List<Category>();
+
+                using (var db = new JulyGrocerContext())
+                {
+                    categories = db.Categories.ToList();
+
+                    result.JsonResultObject = categories;
+                    result.Message = "You get all categories";
+                    result.IsSuccess = true;
+
+                    return result;
+                }
+            }
+
+            catch
+            {
+                result.Message = "Unable to get all categories";
+                result.IsSuccess = false;
+
+                return result;
+            }
+
+        }
+
+        [HttpPost("add")]
+        public Result AddNewCategory([FromBody] CategoryDataInput categoryDataInput)
+        {
+            var result = new Result();
+
+            try
+            {
+                // Validate if all inputs are entered
+                if (categoryDataInput.Category.Length == 0 || categoryDataInput.Icon.Length == 0)
+                {
+                    result.Message = "Please enter the required fields";
+                    result.IsSuccess = false;
+
+                    return result;
+                }
+
+                // If all fields are entered, add this new category to the list
+                using (var db = new JulyGrocerContext())
+                {
+                    Category category = new Category();
+
+                    category.Category1 = categoryDataInput.Category;
+                    category.Icon = categoryDataInput.Icon;
+
+                    db.Add(category);
+                    db.SaveChanges();
+                }
+
+                result.Message = "New category added successfully";
+                result.IsSuccess = true;
+
+                return result;
+            }
+
+            catch
+            {
+                result.Message = "Unable to add new category";
+                result.IsSuccess = false;
+
+                return result;
+            }
+        }
+    }
+}
