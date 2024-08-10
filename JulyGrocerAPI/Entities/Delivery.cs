@@ -17,7 +17,7 @@ public partial class Delivery
 
     public bool Delivered { get; set; }
 
-    public virtual Order Order { get; set; } = null!;
+    public virtual ShopOrder Order { get; set; } = null!;
 
     public virtual Rider Rider { get; set; } = null!;
 

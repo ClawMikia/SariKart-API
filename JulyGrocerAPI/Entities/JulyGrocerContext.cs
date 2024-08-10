@@ -25,13 +25,13 @@ public partial class JulyGrocerContext : DbContext
 
     public virtual DbSet<Message> Messages { get; set; }
 
-    public virtual DbSet<Order> Orders { get; set; }
-
     public virtual DbSet<OrderLine> OrderLines { get; set; }
 
     public virtual DbSet<Product> Products { get; set; }
 
     public virtual DbSet<Rider> Riders { get; set; }
+
+    public virtual DbSet<ShopOrder> ShopOrders { get; set; }
 
     public virtual DbSet<StoreBranch> StoreBranches { get; set; }
 
@@ -128,23 +128,6 @@ public partial class JulyGrocerContext : DbContext
                 .HasConstraintName("FK_Message_User");
         });
 
-        modelBuilder.Entity<Order>(entity =>
-        {
-            entity.ToTable("Order");
-
-            entity.Property(e => e.AmountPaid).HasColumnType("decimal(6, 2)");
-            entity.Property(e => e.Change).HasColumnType("decimal(6, 2)");
-            entity.Property(e => e.CreateDate)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
-            entity.Property(e => e.TotalAmount).HasColumnType("decimal(6, 2)");
-
-            entity.HasOne(d => d.User).WithMany(p => p.Orders)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Order_User");
-        });
-
         modelBuilder.Entity<OrderLine>(entity =>
         {
             entity
@@ -190,6 +173,25 @@ public partial class JulyGrocerContext : DbContext
                 .HasForeignKey(d => d.VehicleId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Rider_Vehicle");
+        });
+
+        modelBuilder.Entity<ShopOrder>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK_Order");
+
+            entity.ToTable("ShopOrder");
+
+            entity.Property(e => e.AmountPaid).HasColumnType("decimal(6, 2)");
+            entity.Property(e => e.Change).HasColumnType("decimal(6, 2)");
+            entity.Property(e => e.CreateDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.TotalAmount).HasColumnType("decimal(6, 2)");
+
+            entity.HasOne(d => d.User).WithMany(p => p.ShopOrders)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Order_User");
         });
 
         modelBuilder.Entity<StoreBranch>(entity =>

@@ -21,7 +21,7 @@ public partial class AppUser
 
     public virtual ICollection<Message> Messages { get; set; } = new List<Message>();
 
-    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+    public virtual ICollection<ShopOrder> ShopOrders { get; set; } = new List<ShopOrder>();
 
     public virtual ICollection<UserStore> UserStores { get; set; } = new List<UserStore>();
 }
