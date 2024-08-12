@@ -21,5 +21,7 @@ public partial class ShopOrder
 
     public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();
 
+    public virtual ICollection<OrderLine> OrderLines { get; set; } = new List<OrderLine>();
+
     public virtual AppUser User { get; set; } = null!;
 }

@@ -130,16 +130,14 @@ public partial class JulyGrocerContext : DbContext
 
         modelBuilder.Entity<OrderLine>(entity =>
         {
-            entity
-                .HasNoKey()
-                .ToTable("OrderLine");
+            entity.ToTable("OrderLine");
 
-            entity.HasOne(d => d.Order).WithMany()
+            entity.HasOne(d => d.Order).WithMany(p => p.OrderLines)
                 .HasForeignKey(d => d.OrderId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_OrderLine_Order");
 
-            entity.HasOne(d => d.Product).WithMany()
+            entity.HasOne(d => d.Product).WithMany(p => p.OrderLines)
                 .HasForeignKey(d => d.ProductId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_OrderLine_Product");
