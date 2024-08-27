@@ -10,8 +10,8 @@ namespace JulyGrocerAPI.Controllers
     [Route("api/order")]
     public class OrderController : Controller
     {
-        [HttpGet("{userId}/{isPaid}")]
-        public Result GetUserOrders(int userId, bool isPaid)
+        [HttpGet("{userId}/{orderStatusId}")]
+        public Result GetUserOrders(int userId, int orderStatusId)
         {
             var result = new Result();
 
@@ -21,7 +21,7 @@ namespace JulyGrocerAPI.Controllers
 
                 using (var db = new JulyGrocerContext())
                 {
-                    orders = db.ShopOrders.Where(x => x.UserId == userId && x.Paid == isPaid).ToList();
+                    orders = db.ShopOrders.Where(x => x.UserId == userId && x.OrderStatusId == orderStatusId).ToList();
                     
                     result.JsonResultObject = orders;
                     result.Message = "You get all your orders";
@@ -51,7 +51,7 @@ namespace JulyGrocerAPI.Controllers
 
                 using (var db = new JulyGrocerContext())
                 {
-                    order = db.ShopOrders.Where(x => x.Id == orderId).Include(x => x.OrderLines).ThenInclude(x => x.Product).FirstOrDefault();
+                    order = db.ShopOrders.Where(x => x.Id == orderId).Include(x => x.OrderStatus).Include(x => x.OrderLines).ThenInclude(x => x.Product).FirstOrDefault();
 
                     result.JsonResultObject = order;
                     result.Message = "You get all your current order";
@@ -64,6 +64,36 @@ namespace JulyGrocerAPI.Controllers
             catch
             {
                 result.Message = "Unable to get all your current order";
+                result.IsSuccess = false;
+
+                return result;
+            }
+        }
+
+        [HttpGet("orderStatus")]
+        public Result GetOrderStatuses()
+        {
+            var result = new Result();
+
+            try
+            {
+                var orderStatuses = new List<OrderStatus>();
+
+                using (var db = new JulyGrocerContext())
+                {
+                    orderStatuses = db.OrderStatuses.ToList();
+
+                    result.JsonResultObject = orderStatuses;
+                    result.Message = "You get order statuses";
+                    result.IsSuccess = true;
+
+                    return result;
+                }
+            }
+
+            catch
+            {
+                result.Message = "Unable to get order statuses";
                 result.IsSuccess = false;
 
                 return result;
@@ -91,6 +121,12 @@ namespace JulyGrocerAPI.Controllers
 
                     foreach (var item in orderLineDataInputs)
                     {
+                        var product = db.Products.Where(x => x.Id == item.ProductId).FirstOrDefault();
+
+                        product.Stock = product.Stock - item.Quantity;
+
+                        db.SaveChanges();
+
                         var orderLine = new OrderLine();
 
                         orderLine.OrderId = order.Id;

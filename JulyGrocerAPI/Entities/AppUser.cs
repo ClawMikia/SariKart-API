@@ -19,9 +19,11 @@ public partial class AppUser
 
     public DateTime CreatedAt { get; set; }
 
-    public virtual ICollection<Message> Messages { get; set; } = new List<Message>();
+    public int UserTypeId { get; set; }
 
     public virtual ICollection<ShopOrder> ShopOrders { get; set; } = new List<ShopOrder>();
 
     public virtual ICollection<UserStore> UserStores { get; set; } = new List<UserStore>();
+
+    public virtual UserType UserType { get; set; } = null!;
 }

@@ -15,7 +15,5 @@ public partial class Rider
 
     public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();
 
-    public virtual ICollection<Message> Messages { get; set; } = new List<Message>();
-
     public virtual Vehicle Vehicle { get; set; } = null!;
 }

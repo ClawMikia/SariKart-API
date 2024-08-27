@@ -17,11 +17,13 @@ public partial class ShopOrder
 
     public decimal Change { get; set; }
 
-    public bool Paid { get; set; }
+    public int OrderStatusId { get; set; }
 
     public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();
 
     public virtual ICollection<OrderLine> OrderLines { get; set; } = new List<OrderLine>();
+
+    public virtual OrderStatus OrderStatus { get; set; } = null!;
 
     public virtual AppUser User { get; set; } = null!;
 }

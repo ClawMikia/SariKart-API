@@ -103,7 +103,7 @@ namespace JulyGrocerAPI.Controllers
             try
             {
                 // Validate if all inputs are entered
-                if (productDataInput.Product.Length == 0 || productDataInput.CategoryId <= 0 || productDataInput.Price <= 0 || productDataInput.Picture.Length == 0 || productDataInput.Unit.Length == 0)
+                if (productDataInput.Product.Length == 0 || productDataInput.CategoryId <= 0 || productDataInput.Price <= 0 || productDataInput.Picture.Length == 0 || productDataInput.Unit.Length == 0 || productDataInput.Stock <= 0)
                 {
                     result.Message = "Please enter the required fields";
                     result.IsSuccess = false;
@@ -121,6 +121,7 @@ namespace JulyGrocerAPI.Controllers
                     product.Price = productDataInput.Price;
                     product.Picture = productDataInput.Picture;
                     product.Unit = productDataInput.Unit;
+                    product.Stock = productDataInput.Stock;
 
                     db.Add(product);
                     db.SaveChanges();
@@ -135,6 +136,52 @@ namespace JulyGrocerAPI.Controllers
             catch
             {
                 result.Message = "Unable to add new product";
+                result.IsSuccess = false;
+
+                return result;
+            }
+        }
+
+        [HttpPut("edit")]
+        public Result EditProduct([FromBody] ProductDataInput productDataInput)
+        {
+            var result = new Result();
+
+            try
+            {
+                // Validate if all inputs are entered
+                if (productDataInput.Product.Length == 0 || productDataInput.CategoryId <= 0 || productDataInput.Price <= 0 || productDataInput.Picture.Length == 0 || productDataInput.Unit.Length == 0 || productDataInput.Stock <= 0)
+                {
+                    result.Message = "Please enter the required fields";
+                    result.IsSuccess = false;
+
+                    return result;
+                }
+
+                // If all fields are entered, add this new product to the list
+                using (var db = new JulyGrocerContext())
+                {
+                    var product = db.Products.Where(x => x.Id == productDataInput.Id).FirstOrDefault();
+
+                    product.Product1 = productDataInput.Product;
+                    product.CategoryId = productDataInput.CategoryId;
+                    product.Price = productDataInput.Price;
+                    product.Picture = productDataInput.Picture;
+                    product.Unit = productDataInput.Unit;
+                    product.Stock = productDataInput.Stock;
+
+                    db.SaveChanges();
+                }
+
+                result.Message = "Current product updated successfully";
+                result.IsSuccess = true;
+
+                return result;
+            }
+
+            catch
+            {
+                result.Message = "Unable to update current product";
                 result.IsSuccess = false;
 
                 return result;

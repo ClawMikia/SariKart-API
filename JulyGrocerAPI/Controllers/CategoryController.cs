@@ -39,6 +39,41 @@ namespace JulyGrocerAPI.Controllers
 
         }
 
+        [HttpGet("list")]
+        public Result GetCategoriesList()
+        {
+            var result = new Result();
+
+            try
+            {
+                var categories = new List<Category>();
+
+                using (var db = new JulyGrocerContext())
+                {
+                    categories = db.Categories.Select(X => new Category
+                    {
+                        Id = X.Id,
+                        Category1 = X.Category1
+                    }).ToList();
+
+                    result.JsonResultObject = categories;
+                    result.Message = "You get all categories";
+                    result.IsSuccess = true;
+
+                    return result;
+                }
+            }
+
+            catch
+            {
+                result.Message = "Unable to get all categories";
+                result.IsSuccess = false;
+
+                return result;
+            }
+
+        }
+
         [HttpPost("add")]
         public Result AddNewCategory([FromBody] CategoryDataInput categoryDataInput)
         {

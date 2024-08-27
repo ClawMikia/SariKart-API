@@ -15,17 +15,15 @@ public partial class JulyGrocerContext : DbContext
     {
     }
 
-    public virtual DbSet<AdminUser> AdminUsers { get; set; }
-
     public virtual DbSet<AppUser> AppUsers { get; set; }
 
     public virtual DbSet<Category> Categories { get; set; }
 
     public virtual DbSet<Delivery> Deliveries { get; set; }
 
-    public virtual DbSet<Message> Messages { get; set; }
-
     public virtual DbSet<OrderLine> OrderLines { get; set; }
+
+    public virtual DbSet<OrderStatus> OrderStatuses { get; set; }
 
     public virtual DbSet<Product> Products { get; set; }
 
@@ -37,6 +35,8 @@ public partial class JulyGrocerContext : DbContext
 
     public virtual DbSet<UserStore> UserStores { get; set; }
 
+    public virtual DbSet<UserType> UserTypes { get; set; }
+
     public virtual DbSet<Vehicle> Vehicles { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -45,19 +45,6 @@ public partial class JulyGrocerContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<AdminUser>(entity =>
-        {
-            entity.ToTable("AdminUser");
-
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
-            entity.Property(e => e.FirstName).HasMaxLength(50);
-            entity.Property(e => e.LastName).HasMaxLength(50);
-            entity.Property(e => e.Password).HasMaxLength(50);
-            entity.Property(e => e.Username).HasMaxLength(50);
-        });
-
         modelBuilder.Entity<AppUser>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK_User");
@@ -72,6 +59,11 @@ public partial class JulyGrocerContext : DbContext
             entity.Property(e => e.LastName).HasMaxLength(50);
             entity.Property(e => e.Password).HasMaxLength(50);
             entity.Property(e => e.Username).HasMaxLength(50);
+
+            entity.HasOne(d => d.UserType).WithMany(p => p.AppUsers)
+                .HasForeignKey(d => d.UserTypeId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AppUser_UserType");
         });
 
         modelBuilder.Entity<Category>(entity =>
@@ -108,26 +100,6 @@ public partial class JulyGrocerContext : DbContext
                 .HasConstraintName("FK_Delivery_UserStore");
         });
 
-        modelBuilder.Entity<Message>(entity =>
-        {
-            entity.ToTable("Message");
-
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
-            entity.Property(e => e.Message1).HasColumnName("Message");
-
-            entity.HasOne(d => d.Rider).WithMany(p => p.Messages)
-                .HasForeignKey(d => d.RiderId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Message_Rider");
-
-            entity.HasOne(d => d.User).WithMany(p => p.Messages)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Message_User");
-        });
-
         modelBuilder.Entity<OrderLine>(entity =>
         {
             entity.ToTable("OrderLine");
@@ -141,6 +113,15 @@ public partial class JulyGrocerContext : DbContext
                 .HasForeignKey(d => d.ProductId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_OrderLine_Product");
+        });
+
+        modelBuilder.Entity<OrderStatus>(entity =>
+        {
+            entity.ToTable("OrderStatus");
+
+            entity.Property(e => e.OrderStatus1)
+                .HasMaxLength(50)
+                .HasColumnName("OrderStatus");
         });
 
         modelBuilder.Entity<Product>(entity =>
@@ -184,7 +165,13 @@ public partial class JulyGrocerContext : DbContext
             entity.Property(e => e.CreateDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
+            entity.Property(e => e.OrderStatusId).HasDefaultValue(1);
             entity.Property(e => e.TotalAmount).HasColumnType("decimal(6, 2)");
+
+            entity.HasOne(d => d.OrderStatus).WithMany(p => p.ShopOrders)
+                .HasForeignKey(d => d.OrderStatusId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ShopOrder_OrderStatus");
 
             entity.HasOne(d => d.User).WithMany(p => p.ShopOrders)
                 .HasForeignKey(d => d.UserId)
@@ -210,6 +197,15 @@ public partial class JulyGrocerContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_UserStore_User");
+        });
+
+        modelBuilder.Entity<UserType>(entity =>
+        {
+            entity.ToTable("UserType");
+
+            entity.Property(e => e.UserType1)
+                .HasMaxLength(50)
+                .HasColumnName("UserType");
         });
 
         modelBuilder.Entity<Vehicle>(entity =>

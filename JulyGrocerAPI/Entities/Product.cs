@@ -17,6 +17,8 @@ public partial class Product
 
     public string Unit { get; set; } = null!;
 
+    public int Stock { get; set; }
+
     public virtual Category Category { get; set; } = null!;
 
     public virtual ICollection<OrderLine> OrderLines { get; set; } = new List<OrderLine>();
