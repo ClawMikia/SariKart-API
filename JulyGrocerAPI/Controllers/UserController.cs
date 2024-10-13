@@ -123,7 +123,7 @@ namespace JulyGrocerAPI.Controllers
                 }
 
                 // Validate if all inputs are entered
-                if (String.IsNullOrEmpty(userDataInput.Username) || String.IsNullOrEmpty(userDataInput.Firstname) || String.IsNullOrEmpty(userDataInput.Lastname) || String.IsNullOrEmpty(userDataInput.Password) || String.IsNullOrEmpty(userDataInput.ConfirmPassword) || String.IsNullOrEmpty(userDataInput.UserStore.Address))
+                if (String.IsNullOrEmpty(userDataInput.Username) || String.IsNullOrEmpty(userDataInput.Firstname) || String.IsNullOrEmpty(userDataInput.Lastname) || String.IsNullOrEmpty(userDataInput.ContactNumber) || String.IsNullOrEmpty(userDataInput.Password) || String.IsNullOrEmpty(userDataInput.ConfirmPassword) || String.IsNullOrEmpty(userDataInput.UserStore.Address))
                 {
                     result.Message = "Please enter the required fields";
                     result.IsSuccess = false;
@@ -188,7 +188,7 @@ namespace JulyGrocerAPI.Controllers
             try
             {
                 // Validate if all inputs are entered
-                if (String.IsNullOrEmpty(userDataInput.Username) || String.IsNullOrEmpty(userDataInput.Firstname) || String.IsNullOrEmpty(userDataInput.Lastname) || String.IsNullOrEmpty(userDataInput.UserStore.Address))
+                if (String.IsNullOrEmpty(userDataInput.Username) || String.IsNullOrEmpty(userDataInput.Firstname) || String.IsNullOrEmpty(userDataInput.Lastname) || String.IsNullOrEmpty(userDataInput.ContactNumber) || String.IsNullOrEmpty(userDataInput.UserStore.Address))
                 {
                     result.Message = "Please enter the required fields";
                     result.IsSuccess = false;
@@ -244,6 +244,74 @@ namespace JulyGrocerAPI.Controllers
                 }
             }
                
+            catch
+            {
+                result.Message = "Unable to update current user account";
+                result.IsSuccess = false;
+
+                return result;
+            }
+        }
+
+        [HttpPut("editAdminUser")]
+        public Result UpdateAdminUser([FromBody] UserDataInput userDataInput)
+        {
+            var result = new Result();
+
+            try
+            {
+                // Validate if all inputs are entered
+                if (String.IsNullOrEmpty(userDataInput.Username) || String.IsNullOrEmpty(userDataInput.Firstname) || String.IsNullOrEmpty(userDataInput.Lastname) || String.IsNullOrEmpty(userDataInput.ContactNumber))
+                {
+                    result.Message = "Please enter the required fields";
+                    result.IsSuccess = false;
+
+                    return result;
+                }
+
+                else
+                {
+                    // Check if the account has already existed. if it is, the user will be asked to input different username
+                    using (var db = new JulyGrocerContext())
+                    {
+                        var user = db.AppUsers.Where(x => x.Id == userDataInput.Id).FirstOrDefault();
+                        var usernameExists = db.AppUsers.Where(x => x.Username == userDataInput.Username && x.Id != userDataInput.Id).FirstOrDefault();
+
+                        // Check if the specific user exists
+                        if (user == null)
+                        {
+                            result.Message = "No user data to update";
+                            result.IsSuccess = false;
+
+                            return result;
+                        }
+
+                        else
+                        {
+                            // Check if the specific user exists
+                            if (usernameExists != null)
+                            {
+                                result.Message = "This user account " + userDataInput.Username + " already exists";
+                                result.IsSuccess = false;
+
+                                return result;
+                            }
+
+                            user.Username = userDataInput.Username;
+                            user.FirstName = userDataInput.Firstname;
+                            user.LastName = userDataInput.Lastname;
+
+                            db.SaveChanges();
+
+                            result.Message = "Current user record is successfully updated";
+                            result.IsSuccess = true;
+
+                            return result;
+                        }
+                    }
+                }
+            }
+
             catch
             {
                 result.Message = "Unable to update current user account";
@@ -312,6 +380,380 @@ namespace JulyGrocerAPI.Controllers
             catch
             {
                 result.Message = "Unable to update your password";
+                result.IsSuccess = false;
+
+                return result;
+            }
+        }
+
+        [HttpGet("adminUser/{id}/{name}")]
+        public Result GetAdminUsers(int id, string name)
+        {
+            var result = new Result();
+
+            try
+            {
+                var users = new List<AppUser>();
+
+                using (var db = new JulyGrocerContext())
+                {
+                    if (name == "all")
+                    {
+                        users = db.AppUsers.Where(x => x.UserTypeId == 2 && x.Id != id).Include(x => x.UserStores).ToList();
+                    }
+
+                    else
+                    {
+                        users = db.AppUsers.Where(x => x.FirstName.Contains(name) || x.LastName.Contains(name) || x.Username.Contains(name))
+                        .Where(x => x.UserTypeId == 2 && x.Id != id).ToList();
+                    }
+                }
+
+                result.JsonResultObject = users;
+                result.Message = "You can get the admin users";
+                result.IsSuccess = true;
+
+                return result;
+            }
+
+            catch
+            {
+                result.Message = "Unable to get the admin users";
+                result.IsSuccess = false;
+
+                return result;
+            }
+
+        }
+
+        [HttpGet("rider/{name}")]
+        public Result GetRiders(string name)
+        {
+            var result = new Result();
+
+            try
+            {
+                var users = new List<AppUser>();
+
+                using (var db = new JulyGrocerContext())
+                {
+                    if (name == "all")
+                    {
+                        users = db.AppUsers.Where(x => x.UserTypeId == 3).Include(x => x.UserStores).ToList();
+                    }
+
+                    else
+                    {
+                        users = db.AppUsers.Where(x => x.FirstName.Contains(name) || x.LastName.Contains(name) || x.Username.Contains(name))
+                        .Where(x => x.UserTypeId == 3).ToList();
+                    }
+                }
+
+                result.JsonResultObject = users;
+                result.Message = "You can get the riders";
+                result.IsSuccess = true;
+
+                return result;
+            }
+
+            catch
+            {
+                result.Message = "Unable to get the riders";
+                result.IsSuccess = false;
+
+                return result;
+            }
+
+        }
+
+        // User sign up registration if the user has no account yet
+        [HttpPost("adminUser/add")]
+        public Result AddAdminUser([FromBody] UserDataInput userDataInput)
+        {
+            var result = new Result();
+
+            try
+            {
+                // Check if the account has already existed. if it is, the user will be asked to input different username
+                using (var db = new JulyGrocerContext())
+                {
+                    var user = db.AppUsers.Where(x => x.Username == userDataInput.Username && x.Id != userDataInput.Id).FirstOrDefault();
+
+                    // Check if the specific user exists
+                    if (user != null)
+                    {
+                        result.Message = "This user account " + userDataInput.Username + " already exists";
+                        result.IsSuccess = false;
+
+                        return result;
+                    }
+                }
+
+                // Validate if all inputs are entered
+                if (String.IsNullOrEmpty(userDataInput.Username) || String.IsNullOrEmpty(userDataInput.Firstname) || String.IsNullOrEmpty(userDataInput.Lastname) || String.IsNullOrEmpty(userDataInput.ContactNumber) || String.IsNullOrEmpty(userDataInput.Password) || String.IsNullOrEmpty(userDataInput.ConfirmPassword))
+                {
+                    result.Message = "Please enter the required fields";
+                    result.IsSuccess = false;
+
+                    return result;
+                }
+
+                // Validate that the password and confirmed password should match
+                else if (userDataInput.Password != userDataInput.ConfirmPassword)
+                {
+                    result.Message = "The new password should match with the confirm password";
+                    result.IsSuccess = false;
+
+                    return result;
+                }
+
+                else
+                {
+                    using (var db = new JulyGrocerContext())
+                    {
+                        var user = new AppUser();
+
+                        user.Username = userDataInput.Username;
+                        user.FirstName = userDataInput.Firstname;
+                        user.LastName = userDataInput.Lastname;
+                        user.Password = userDataInput.Password;
+                        user.UserTypeId = 2;
+                        user.ContactNumber = userDataInput.ContactNumber;
+
+                        db.Add(user);
+                        db.SaveChanges();
+
+                        result.Message = "New user record is successfully registered";
+                        result.IsSuccess = true;
+
+                        return result;
+                    }
+                }
+            }
+
+            catch
+            {
+                result.Message = "Unable to register new user account";
+                result.IsSuccess = false;
+
+                return result;
+            }
+        }
+
+        // User sign up registration if the user has no account yet
+        [HttpPost("rider/add")]
+        public Result AddRider([FromBody] UserDataInput userDataInput)
+        {
+            var result = new Result();
+
+            try
+            {
+                // Check if the account has already existed. if it is, the user will be asked to input different username
+                using (var db = new JulyGrocerContext())
+                {
+                    var user = db.AppUsers.Where(x => x.Username == userDataInput.Username && x.Id != userDataInput.Id).FirstOrDefault();
+
+                    // Check if the specific user exists
+                    if (user != null)
+                    {
+                        result.Message = "This user account " + userDataInput.Username + " already exists";
+                        result.IsSuccess = false;
+
+                        return result;
+                    }
+                }
+
+                // Validate if all inputs are entered
+                if (String.IsNullOrEmpty(userDataInput.Username) || String.IsNullOrEmpty(userDataInput.Firstname) || String.IsNullOrEmpty(userDataInput.Lastname) || String.IsNullOrEmpty(userDataInput.ContactNumber) || String.IsNullOrEmpty(userDataInput.Password) || String.IsNullOrEmpty(userDataInput.ConfirmPassword))
+                {
+                    result.Message = "Please enter the required fields";
+                    result.IsSuccess = false;
+
+                    return result;
+                }
+
+                // Validate that the password and confirmed password should match
+                else if (userDataInput.Password != userDataInput.ConfirmPassword)
+                {
+                    result.Message = "The new password should match with the confirm password";
+                    result.IsSuccess = false;
+
+                    return result;
+                }
+
+                else
+                {
+                    using (var db = new JulyGrocerContext())
+                    {
+                        var user = new AppUser();
+
+                        user.Username = userDataInput.Username;
+                        user.FirstName = userDataInput.Firstname;
+                        user.LastName = userDataInput.Lastname;
+                        user.Password = userDataInput.Password;
+                        user.UserTypeId = 3;
+                        user.ContactNumber = userDataInput.ContactNumber;
+
+                        db.Add(user);
+                        db.SaveChanges();
+
+                        result.Message = "New user record is successfully registered";
+                        result.IsSuccess = true;
+
+                        return result;
+                    }
+                }
+            }
+
+            catch
+            {
+                result.Message = "Unable to register new user account";
+                result.IsSuccess = false;
+
+                return result;
+            }
+        }
+
+        // User sign up registration if the user has no account yet
+        [HttpPut("adminUser/edit")]
+        public Result UpdateOtAdminUser([FromBody] UserDataInput userDataInput)
+        {
+            var result = new Result();
+
+            try
+            {
+                // Check if the account has already existed. if it is, the user will be asked to input different username
+                using (var db = new JulyGrocerContext())
+                {
+                    var user = db.AppUsers.Where(x => x.Username == userDataInput.Username && x.Id != userDataInput.Id).FirstOrDefault();
+
+                    // Check if the specific user exists
+                    if (user != null)
+                    {
+                        result.Message = "This user account " + userDataInput.Username + " already exists";
+                        result.IsSuccess = false;
+
+                        return result;
+                    }
+                }
+
+                // Validate if all inputs are entered
+                if (String.IsNullOrEmpty(userDataInput.Username) || String.IsNullOrEmpty(userDataInput.Firstname) || String.IsNullOrEmpty(userDataInput.Lastname) || String.IsNullOrEmpty(userDataInput.ContactNumber) || String.IsNullOrEmpty(userDataInput.Password) || String.IsNullOrEmpty(userDataInput.ConfirmPassword))
+                {
+                    result.Message = "Please enter the required fields";
+                    result.IsSuccess = false;
+
+                    return result;
+                }
+
+                // Validate that the password and confirmed password should match
+                else if (userDataInput.Password != userDataInput.ConfirmPassword)
+                {
+                    result.Message = "The new password should match with the confirm password";
+                    result.IsSuccess = false;
+
+                    return result;
+                }
+
+                else
+                {
+                    using (var db = new JulyGrocerContext())
+                    {
+                        var user = db.AppUsers.Where(x => x.Id == userDataInput.Id).FirstOrDefault();
+
+                        user.Username = userDataInput.Username;
+                        user.FirstName = userDataInput.Firstname;
+                        user.LastName = userDataInput.Lastname;
+                        user.Password = userDataInput.Password;
+                        user.ContactNumber = userDataInput.ContactNumber;
+
+                        db.SaveChanges();
+
+                        result.Message = "Current user record is successfully updated";
+                        result.IsSuccess = true;
+
+                        return result;
+                    }
+                }
+            }
+
+            catch
+            {
+                result.Message = "Unable to update current user account";
+                result.IsSuccess = false;
+
+                return result;
+            }
+        }
+
+        [HttpGet("adminUser/get/{id}")]
+        public Result GetAdminUser(int id)
+        {
+            var result = new Result();
+
+            try
+            {
+                var user = new AppUser();
+
+                using (var db = new JulyGrocerContext())
+                {
+                    user = db.AppUsers.Where(x => x.Id == id).FirstOrDefault();
+                }
+
+                result.JsonResultObject = user;
+                result.Message = "You can get current user account details";
+                result.IsSuccess = true;
+
+                return result;
+            }
+
+            catch
+            {
+                result.Message = "Unable to get current user account details";
+                result.IsSuccess = false;
+
+                return result;
+            }
+
+        }
+
+        // The user account will be deleted
+        [HttpDelete("adminUser/delete/{id}")]
+        public Result DeleteAdminUser(int id)
+        {
+            var result = new Result();
+
+            try
+            {
+                using (var db = new JulyGrocerContext())
+                {
+                    var adminUser = db.AppUsers.Where(x => x.Id == id).FirstOrDefault();
+
+                    // Check if the specific user exists
+                    if (adminUser == null)
+                    {
+                        result.Message = "No admin user to delete";
+                        result.IsSuccess = false;
+
+                        return result;
+                    }
+
+                    else
+                    {
+                        db.AppUsers.Remove(adminUser);
+                        db.SaveChanges();
+
+                        result.Message = "Admin user is successfully deleted";
+                        result.IsSuccess = true;
+
+                        return result;
+                    }
+                }
+            }
+
+            catch
+            {
+                result.Message = "Unable to delete an admin user";
                 result.IsSuccess = false;
 
                 return result;

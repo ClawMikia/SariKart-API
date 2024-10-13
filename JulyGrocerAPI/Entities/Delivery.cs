@@ -17,9 +17,13 @@ public partial class Delivery
 
     public bool Delivered { get; set; }
 
+    public int VehicleId { get; set; }
+
     public virtual ShopOrder Order { get; set; } = null!;
 
-    public virtual Rider Rider { get; set; } = null!;
+    public virtual AppUser Rider { get; set; } = null!;
 
     public virtual UserStore Store { get; set; } = null!;
+
+    public virtual Vehicle Vehicle { get; set; } = null!;
 }

@@ -9,5 +9,5 @@ public partial class Vehicle
 
     public string Type { get; set; } = null!;
 
-    public virtual ICollection<Rider> Riders { get; set; } = new List<Rider>();
+    public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();
 }

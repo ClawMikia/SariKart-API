@@ -40,6 +40,36 @@ namespace JulyGrocerAPI.Controllers
             }
         }
 
+        [HttpGet("orderStatus/{orderStatusId}")]
+        public Result GetOrdersByStatus(int orderStatusId)
+        {
+            var result = new Result();
+
+            try
+            {
+                var orders = new List<ShopOrder>();
+
+                using (var db = new JulyGrocerContext())
+                {
+                    orders = db.ShopOrders.Where(x => x.OrderStatusId == orderStatusId).ToList();
+
+                    result.JsonResultObject = orders;
+                    result.Message = "You get all your orders";
+                    result.IsSuccess = true;
+
+                    return result;
+                }
+            }
+
+            catch
+            {
+                result.Message = "Unable to get all your orders";
+                result.IsSuccess = false;
+
+                return result;
+            }
+        }
+
         [HttpGet("{orderId}")]
         public Result GetOrder(int orderId)
         {

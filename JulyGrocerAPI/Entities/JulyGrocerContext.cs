@@ -27,8 +27,6 @@ public partial class JulyGrocerContext : DbContext
 
     public virtual DbSet<Product> Products { get; set; }
 
-    public virtual DbSet<Rider> Riders { get; set; }
-
     public virtual DbSet<ShopOrder> ShopOrders { get; set; }
 
     public virtual DbSet<StoreBranch> StoreBranches { get; set; }
@@ -92,12 +90,17 @@ public partial class JulyGrocerContext : DbContext
             entity.HasOne(d => d.Rider).WithMany(p => p.Deliveries)
                 .HasForeignKey(d => d.RiderId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Delivery_Rider");
+                .HasConstraintName("FK_Delivery_AppUser");
 
             entity.HasOne(d => d.Store).WithMany(p => p.Deliveries)
                 .HasForeignKey(d => d.StoreId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Delivery_UserStore");
+
+            entity.HasOne(d => d.Vehicle).WithMany(p => p.Deliveries)
+                .HasForeignKey(d => d.VehicleId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Delivery_Vehicle");
         });
 
         modelBuilder.Entity<OrderLine>(entity =>
@@ -139,19 +142,6 @@ public partial class JulyGrocerContext : DbContext
                 .HasForeignKey(d => d.CategoryId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Product_Category");
-        });
-
-        modelBuilder.Entity<Rider>(entity =>
-        {
-            entity.ToTable("Rider");
-
-            entity.Property(e => e.FirstName).HasMaxLength(50);
-            entity.Property(e => e.LastName).HasMaxLength(50);
-
-            entity.HasOne(d => d.Vehicle).WithMany(p => p.Riders)
-                .HasForeignKey(d => d.VehicleId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Rider_Vehicle");
         });
 
         modelBuilder.Entity<ShopOrder>(entity =>

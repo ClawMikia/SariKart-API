@@ -1,4 +1,4 @@
-@JulyGrocerAPI_HostAddress = http://192.168.1.253:60
+@JulyGrocerAPI_HostAddress = http://10.0.0.44:9000
 
 GET {{JulyGrocerAPI_HostAddress}}/weatherforecast/
 Accept: application/json

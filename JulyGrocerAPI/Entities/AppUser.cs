@@ -21,6 +21,8 @@ public partial class AppUser
 
     public int UserTypeId { get; set; }
 
+    public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();
+
     public virtual ICollection<ShopOrder> ShopOrders { get; set; } = new List<ShopOrder>();
 
     public virtual ICollection<UserStore> UserStores { get; set; } = new List<UserStore>();
