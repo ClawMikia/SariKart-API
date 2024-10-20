@@ -426,6 +426,42 @@ namespace JulyGrocerAPI.Controllers
 
         }
 
+        [HttpGet("list/riders")]
+        public Result GetRidersList()
+        {
+            var result = new Result();
+
+            try
+            {
+                var riders = new List<AppUser>();
+
+                using (var db = new JulyGrocerContext())
+                {
+                    riders = db.AppUsers.Where(x => x.UserTypeId == 3).Select(X => new AppUser
+                    {
+                        Id = X.Id,
+                        FirstName = X.FirstName,
+                        LastName = X.LastName
+                    }).ToList();
+
+                    result.JsonResultObject = riders;
+                    result.Message = "You get all riders list";
+                    result.IsSuccess = true;
+
+                    return result;
+                }
+            }
+
+            catch
+            {
+                result.Message = "Unable to get all riders list";
+                result.IsSuccess = false;
+
+                return result;
+            }
+
+        }
+
         [HttpGet("rider/{name}")]
         public Result GetRiders(string name)
         {

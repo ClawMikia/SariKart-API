@@ -45,6 +45,41 @@ namespace JulyGrocerAPI.Controllers
             }
         }
 
+        [HttpGet("list")]
+        public Result GetBranchList()
+        {
+            var result = new Result();
+
+            try
+            {
+                var branches = new List<StoreBranch>();
+
+                using (var db = new JulyGrocerContext())
+                {
+                    branches = db.StoreBranches.Select(X => new StoreBranch
+                    {
+                        Id = X.Id,
+                        Branch = X.Branch
+                    }).ToList();
+
+                    result.JsonResultObject = branches;
+                    result.Message = "You get all branch list";
+                    result.IsSuccess = true;
+
+                    return result;
+                }
+            }
+
+            catch
+            {
+                result.Message = "Unable to get all branch list";
+                result.IsSuccess = false;
+
+                return result;
+            }
+
+        }
+
         [HttpGet("{id}")]
         public Result GetBranch(int id)
         {

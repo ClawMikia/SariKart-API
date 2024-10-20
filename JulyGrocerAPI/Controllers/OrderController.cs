@@ -182,5 +182,60 @@ namespace JulyGrocerAPI.Controllers
                 return result;
             }
         }
+
+        [HttpPost("delivery/save")]
+        public Result UpdateOrderDelivery([FromBody] OrderDeliveryDataInput orderDeliveryDataInput)
+        {
+            //var result = new Result();
+            //var userId = orderLineDataInputs.Select(X => X.userId).FirstOrDefault();
+            //var totalAmount = orderLineDataInputs.Sum(x => x.TotalAmount);
+
+            //try
+            //{
+            //    using (var db = new JulyGrocerContext())
+            //    {
+            //        var order = new ShopOrder();
+
+            //        order.UserId = userId;
+            //        order.TotalAmount = totalAmount;
+
+            //        db.Add(order);
+            //        db.SaveChanges();
+
+            //        foreach (var item in orderLineDataInputs)
+            //        {
+            //            var product = db.Products.Where(x => x.Id == item.ProductId).FirstOrDefault();
+
+            //            product.Stock = product.Stock - item.Quantity;
+
+            //            db.SaveChanges();
+
+            //            var orderLine = new OrderLine();
+
+            //            orderLine.OrderId = order.Id;
+            //            orderLine.ProductId = item.ProductId;
+            //            orderLine.Quantity = item.Quantity;
+
+            //            db.Add(orderLine);
+            //            db.SaveChanges();
+            //        }
+
+            //        result.Message = "You successfully placed an order";
+            //        result.IsSuccess = true;
+
+            //        return result;
+            //    }
+            //}
+
+            //catch
+            //{
+            //    result.Message = "Unable to place your order";
+            //    result.IsSuccess = false;
+
+            //    return result;
+            //}
+
+            return null;
+        }
     }
 }
