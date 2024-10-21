@@ -14,4 +14,6 @@ public partial class StoreBranch
     public string City { get; set; } = null!;
 
     public string Province { get; set; } = null!;
+
+    public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();
 }

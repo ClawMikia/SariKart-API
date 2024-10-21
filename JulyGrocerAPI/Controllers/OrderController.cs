@@ -3,6 +3,7 @@ using JulyGrocerAPI.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace JulyGrocerAPI.Controllers
 {
@@ -186,56 +187,114 @@ namespace JulyGrocerAPI.Controllers
         [HttpPost("delivery/save")]
         public Result UpdateOrderDelivery([FromBody] OrderDeliveryDataInput orderDeliveryDataInput)
         {
-            //var result = new Result();
-            //var userId = orderLineDataInputs.Select(X => X.userId).FirstOrDefault();
-            //var totalAmount = orderLineDataInputs.Sum(x => x.TotalAmount);
+            var result = new Result();
 
-            //try
-            //{
-            //    using (var db = new JulyGrocerContext())
-            //    {
-            //        var order = new ShopOrder();
+            try
+            {
+                // Validate if all inputs are entered
+                if (orderDeliveryDataInput.StoreBranchId < 1 || orderDeliveryDataInput.RiderId < 1 || orderDeliveryDataInput.VehicleId < 1 ||
+                    orderDeliveryDataInput.OrderStatusId < 1 || orderDeliveryDataInput.DeliveryDate.IsNullOrEmpty())
+                {
+                    result.Message = "Please enter the required fields";
+                    result.IsSuccess = false;
 
-            //        order.UserId = userId;
-            //        order.TotalAmount = totalAmount;
+                    return result;
+                }
 
-            //        db.Add(order);
-            //        db.SaveChanges();
+                // Validate if amount paid is entered
+                if (orderDeliveryDataInput.AmountPaid <= 0)
+                {
+                    result.Message = "Amount paid should be entered";
+                    result.IsSuccess = false;
 
-            //        foreach (var item in orderLineDataInputs)
-            //        {
-            //            var product = db.Products.Where(x => x.Id == item.ProductId).FirstOrDefault();
+                    return result;
+                }
 
-            //            product.Stock = product.Stock - item.Quantity;
+                using (var db = new JulyGrocerContext())
+                {
+                    var delivery = db.Deliveries.Where(x => x.OrderId == orderDeliveryDataInput.OrderId).FirstOrDefault();
 
-            //            db.SaveChanges();
+                    if (delivery == null)
+                    {
+                        delivery = new Delivery();
 
-            //            var orderLine = new OrderLine();
+                        delivery.OrderId = orderDeliveryDataInput.OrderId;
+                        delivery.StoreId = orderDeliveryDataInput.StoreBranchId;
+                        delivery.RiderId = orderDeliveryDataInput.RiderId;
+                        delivery.VehicleId = orderDeliveryDataInput.VehicleId;
+                        delivery.Delivered = orderDeliveryDataInput.IsDelivered;
+                        delivery.DeliveryDate = DateTime.ParseExact(orderDeliveryDataInput.DeliveryDate, "MM/dd/yyyy", System.Globalization.CultureInfo.InvariantCulture);
 
-            //            orderLine.OrderId = order.Id;
-            //            orderLine.ProductId = item.ProductId;
-            //            orderLine.Quantity = item.Quantity;
+                        db.Add(delivery);
+                        db.SaveChanges();
+                    }
 
-            //            db.Add(orderLine);
-            //            db.SaveChanges();
-            //        }
+                    else
+                    {
+                        delivery.OrderId = orderDeliveryDataInput.OrderId;
+                        delivery.StoreId = orderDeliveryDataInput.StoreBranchId;
+                        delivery.RiderId = orderDeliveryDataInput.RiderId;
+                        delivery.VehicleId = orderDeliveryDataInput.VehicleId;
+                        delivery.Delivered = orderDeliveryDataInput.IsDelivered;
+                        delivery.DeliveryDate = DateTime.ParseExact(orderDeliveryDataInput.DeliveryDate, "MM/dd/yyyy", System.Globalization.CultureInfo.InvariantCulture);
 
-            //        result.Message = "You successfully placed an order";
-            //        result.IsSuccess = true;
+                        db.SaveChanges();
+                    }
 
-            //        return result;
-            //    }
-            //}
+                    var order = db.ShopOrders.Where(x => x.Id == orderDeliveryDataInput.OrderId).FirstOrDefault();
 
-            //catch
-            //{
-            //    result.Message = "Unable to place your order";
-            //    result.IsSuccess = false;
+                    order.OrderStatusId = orderDeliveryDataInput.OrderStatusId;
+                    order.AmountPaid = orderDeliveryDataInput.AmountPaid;
+                    order.Change = orderDeliveryDataInput.Change;
 
-            //    return result;
-            //}
+                    db.SaveChanges();
+
+                    result.Message = "You successfully updated a current delivery";
+                    result.IsSuccess = true;
+
+                    return result;
+                }
+            }
+
+            catch
+            {
+                result.Message = "Unable to update a current delivery";
+                result.IsSuccess = false;
+
+                return result;
+            }
 
             return null;
+        }
+
+        [HttpGet("delivery/{orderId}")]
+        public Result GetOrderDelivery(int orderId)
+        {
+            var result = new Result();
+
+            try
+            {
+                var delivery = new Delivery();
+
+                using (var db = new JulyGrocerContext())
+                {
+                    delivery = db.Deliveries.Where(x => x.OrderId == orderId).FirstOrDefault();
+
+                    result.JsonResultObject = delivery;
+                    result.Message = "You get current order delivery";
+                    result.IsSuccess = true;
+
+                    return result;
+                }
+            }
+
+            catch
+            {
+                result.Message = "Unable to get current delivery";
+                result.IsSuccess = false;
+
+                return result;
+            }
         }
     }
 }

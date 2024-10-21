@@ -23,7 +23,7 @@ public partial class Delivery
 
     public virtual AppUser Rider { get; set; } = null!;
 
-    public virtual UserStore Store { get; set; } = null!;
+    public virtual StoreBranch Store { get; set; } = null!;
 
     public virtual Vehicle Vehicle { get; set; } = null!;
 }

@@ -11,7 +11,5 @@ public partial class UserStore
 
     public string Address { get; set; } = null!;
 
-    public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();
-
     public virtual AppUser User { get; set; } = null!;
 }
