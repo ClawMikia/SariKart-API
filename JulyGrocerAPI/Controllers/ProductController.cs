@@ -187,5 +187,51 @@ namespace JulyGrocerAPI.Controllers
                 return result;
             }
         }
+
+        [HttpGet("productHistory/{year}/{month}")]
+        public Result getProductsHistoryCount(int year, int month)
+        {
+            var result = new Result();
+
+            try
+            {
+                var products = new List<ProductHistoryDataOutput>();
+
+                using (var db = new JulyGrocerContext())
+                {
+                    products = db.OrderLines
+                        .Include(o => o.Order)
+                        .Include(p => p.Product)
+                        .Where(o => o.Order.CreateDate.Month == month && o.Order.CreateDate.Year == year)
+                        .Select(p => new ProductHistoryDataOutput
+                        {
+                            ProductName = p.Product.Product1,
+                            Quantity = p.Quantity
+                        })
+                        .GroupBy(p => p.ProductName)
+                        .Select(p => new ProductHistoryDataOutput
+                        {
+                            ProductName = p.Key,
+                            Quantity = p.Count()
+                        })
+                        .OrderByDescending(p => p.Quantity)
+                        .ToList();
+
+                    result.JsonResultObject = products;
+                    result.Message = "You get all your sellable products history for this date";
+                    result.IsSuccess = true;
+
+                    return result;
+                }
+            }
+
+            catch
+            {
+                result.Message = "Unable to get all your sellable products history for this date";
+                result.IsSuccess = false;
+
+                return result;
+            }
+        }
     }
 }

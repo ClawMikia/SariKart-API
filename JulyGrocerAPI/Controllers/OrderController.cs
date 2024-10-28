@@ -22,7 +22,7 @@ namespace JulyGrocerAPI.Controllers
 
                 using (var db = new JulyGrocerContext())
                 {
-                    orders = db.ShopOrders.Where(x => x.UserId == userId && x.OrderStatusId == orderStatusId).ToList();
+                    orders = db.ShopOrders.Include(x => x.User).Where(x => x.UserId == userId && x.OrderStatusId == orderStatusId).ToList();
                     
                     result.JsonResultObject = orders;
                     result.Message = "You get all your orders";
@@ -41,8 +41,8 @@ namespace JulyGrocerAPI.Controllers
             }
         }
 
-        [HttpGet("orderStatus/{orderStatusId}")]
-        public Result GetOrdersByStatus(int orderStatusId)
+        [HttpPost("adminOrders")]
+        public Result GetOrdersByFilter(SearchOrderFilterDataInput searchOrderFilterDataInput)
         {
             var result = new Result();
 
@@ -52,7 +52,10 @@ namespace JulyGrocerAPI.Controllers
 
                 using (var db = new JulyGrocerContext())
                 {
-                    orders = db.ShopOrders.Where(x => x.OrderStatusId == orderStatusId).ToList();
+                    orders = db.ShopOrders.Include(x => x.User)
+                        .Where(x => x.OrderStatusId == searchOrderFilterDataInput.orderStatusId && 
+                        (x.User.FirstName.Contains(searchOrderFilterDataInput.customerName) || 
+                        x.User.LastName.Contains(searchOrderFilterDataInput.customerName))).ToList();
 
                     result.JsonResultObject = orders;
                     result.Message = "You get all your orders";
