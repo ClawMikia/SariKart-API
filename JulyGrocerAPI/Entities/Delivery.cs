@@ -19,6 +19,8 @@ public partial class Delivery
 
     public int VehicleId { get; set; }
 
+    public bool CashOnHand { get; set; }
+
     public virtual ShopOrder Order { get; set; } = null!;
 
     public virtual AppUser Rider { get; set; } = null!;

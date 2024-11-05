@@ -152,6 +152,8 @@ public partial class JulyGrocerContext : DbContext
 
             entity.Property(e => e.AmountPaid).HasColumnType("decimal(6, 2)");
             entity.Property(e => e.Change).HasColumnType("decimal(6, 2)");
+            entity.Property(e => e.ContactNumber).HasMaxLength(50);
+            entity.Property(e => e.ContactPerson).HasMaxLength(50);
             entity.Property(e => e.CreateDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");

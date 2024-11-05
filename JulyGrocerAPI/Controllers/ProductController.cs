@@ -150,7 +150,7 @@ namespace JulyGrocerAPI.Controllers
             try
             {
                 // Validate if all inputs are entered
-                if (productDataInput.Product.Length == 0 || productDataInput.CategoryId <= 0 || productDataInput.Price <= 0 || productDataInput.Picture.Length == 0 || productDataInput.Unit.Length == 0 || productDataInput.Stock <= 0)
+                if (productDataInput.Product.Length == 0 || productDataInput.CategoryId <= 0 || productDataInput.Price <= 0 || productDataInput.Picture.Length == 0 || productDataInput.Unit.Length == 0)
                 {
                     result.Message = "Please enter the required fields";
                     result.IsSuccess = false;
@@ -212,7 +212,7 @@ namespace JulyGrocerAPI.Controllers
                         .Select(p => new ProductHistoryDataOutput
                         {
                             ProductName = p.Key,
-                            Quantity = p.Count()
+                            Quantity = p.Sum(x => x.Quantity )
                         })
                         .OrderByDescending(p => p.Quantity)
                         .ToList();

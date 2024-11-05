@@ -19,6 +19,12 @@ public partial class ShopOrder
 
     public int OrderStatusId { get; set; }
 
+    public string ContactPerson { get; set; } = null!;
+
+    public string ContactNumber { get; set; } = null!;
+
+    public string ContactAddress { get; set; } = null!;
+
     public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();
 
     public virtual ICollection<OrderLine> OrderLines { get; set; } = new List<OrderLine>();

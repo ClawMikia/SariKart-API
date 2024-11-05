@@ -22,8 +22,19 @@ namespace JulyGrocerAPI.Controllers
 
                 using (var db = new JulyGrocerContext())
                 {
-                    orders = db.ShopOrders.Include(x => x.User).Where(x => x.UserId == userId && x.OrderStatusId == orderStatusId).ToList();
+                    orders = db.ShopOrders.Include(x => x.User).Include(x => x.OrderLines).ThenInclude(x => x.Product).Where(x => x.UserId == userId && x.OrderStatusId == orderStatusId).ToList();
+
+                    if (orderStatusId == 4)
+                    {
+                        orders = orders.OrderBy(x => x.CreateDate).ToList();
                     
+                    }
+
+                    else
+                    {
+                        orders = orders.OrderByDescending(x => x.CreateDate).ToList();
+                    }
+
                     result.JsonResultObject = orders;
                     result.Message = "You get all your orders";
                     result.IsSuccess = true;
@@ -52,10 +63,20 @@ namespace JulyGrocerAPI.Controllers
 
                 using (var db = new JulyGrocerContext())
                 {
-                    orders = db.ShopOrders.Include(x => x.User)
+                    orders = db.ShopOrders.Include(x => x.User).Include(x => x.OrderLines).ThenInclude(x => x.Product)
                         .Where(x => x.OrderStatusId == searchOrderFilterDataInput.orderStatusId && 
                         (x.User.FirstName.Contains(searchOrderFilterDataInput.customerName) || 
                         x.User.LastName.Contains(searchOrderFilterDataInput.customerName))).ToList();
+
+                    if (searchOrderFilterDataInput.orderStatusId == 4)
+                    {
+                        orders = orders.OrderBy(x => x.CreateDate).ToList();
+                    }
+
+                    else
+                    {
+                        orders = orders.OrderByDescending(x => x.CreateDate).ToList();
+                    }
 
                     result.JsonResultObject = orders;
                     result.Message = "You get all your orders";
@@ -145,10 +166,16 @@ namespace JulyGrocerAPI.Controllers
             {
                 using (var db = new JulyGrocerContext())
                 {
+                    var user = db.AppUsers.Where(x => x.Id == userId).FirstOrDefault();
+                    var store = db.UserStores.Where(x => x.UserId == userId).FirstOrDefault();
+
                     var order = new ShopOrder();
 
                     order.UserId = userId;
                     order.TotalAmount = totalAmount;
+                    order.ContactPerson = user.FirstName + " " + user.LastName;
+                    order.ContactNumber = user.ContactNumber;
+                    order.ContactAddress = store.Address;
 
                     db.Add(order);
                     db.SaveChanges();
@@ -205,13 +232,13 @@ namespace JulyGrocerAPI.Controllers
                 }
 
                 // Validate if amount paid is entered
-                if (orderDeliveryDataInput.AmountPaid <= 0)
-                {
-                    result.Message = "Amount paid should be entered";
-                    result.IsSuccess = false;
+                //if (orderDeliveryDataInput.AmountPaid <= 0)
+                //{
+                //    result.Message = "Amount paid should be entered";
+                //    result.IsSuccess = false;
 
-                    return result;
-                }
+                //    return result;
+                //}
 
                 using (var db = new JulyGrocerContext())
                 {
@@ -294,6 +321,126 @@ namespace JulyGrocerAPI.Controllers
             catch
             {
                 result.Message = "Unable to get current delivery";
+                result.IsSuccess = false;
+
+                return result;
+            }
+        }
+
+        [HttpPut("followUp/{orderId}")]
+        public Result FollowUpOrder(int orderId)
+        {
+            var result = new Result();
+
+            try
+            {
+                using (var db = new JulyGrocerContext())
+                {
+                    var order = db.ShopOrders.Where(x => x.Id == orderId).FirstOrDefault();
+
+                    if (order.OrderStatusId == 4)
+                    {
+                        result.Message = "This order is already followed-up";
+                        result.IsSuccess = true;
+
+                        return result;
+                    }
+
+                    order.OrderStatusId = 4;
+
+                    db.SaveChanges();
+
+                    result.Message = "You order has been followed-up";
+                    result.IsSuccess = true;
+
+                    return result;
+                }
+            }
+
+            catch
+            {
+                result.Message = "Unable to follow-up your order";
+                result.IsSuccess = false;
+
+                return result;
+            }
+        }
+
+        [HttpPut("cancel/{orderId}")]
+        public Result CancelOrder(int orderId)
+        {
+            var result = new Result();
+
+            try
+            {
+                using (var db = new JulyGrocerContext())
+                {
+                    var order = db.ShopOrders.Where(x => x.Id == orderId).FirstOrDefault();
+
+                    if (order.OrderStatusId == 3)
+                    {
+                        result.Message = "This order is already cancelled";
+                        result.IsSuccess = true;
+
+                        return result;
+                    }
+
+                    order.OrderStatusId = 3;
+
+                    db.SaveChanges();
+
+                    result.Message = "You order has been cancelled";
+                    result.IsSuccess = true;
+
+                    return result;
+                }
+            }
+
+            catch
+            {
+                result.Message = "Unable to cancel your order";
+                result.IsSuccess = false;
+
+                return result;
+            }
+        }
+
+        [HttpPut("editOrderContact")]
+        public Result EditOrderContactInfo([FromBody] OrderContactDataInput orderContactDataInput)
+        {
+            var result = new Result();
+
+            try
+            {
+                // Validate if all inputs are entered
+                if (orderContactDataInput.ContactPerson.IsNullOrEmpty() || orderContactDataInput.ContactNumber.IsNullOrEmpty() || orderContactDataInput.ContactAddress.IsNullOrEmpty())
+                {
+                    result.Message = "Please enter the required fields";
+                    result.IsSuccess = false;
+
+                    return result;
+                }
+
+                using (var db = new JulyGrocerContext())
+                {
+                    var order = db.ShopOrders.Where(x => x.Id == orderContactDataInput.OrderId).FirstOrDefault();
+
+                    order.ContactPerson = orderContactDataInput.ContactPerson;
+                    order.ContactNumber = orderContactDataInput.ContactNumber;
+                    order.ContactAddress = orderContactDataInput.ContactAddress;
+
+                    db.SaveChanges();
+
+                    result.Message = "You contact information for this order is successfully updated";
+                    result.IsSuccess = true;
+
+                    return result;
+                }
+            }
+
+            catch
+            {
+                result.Message = "Unable to update the contact information of your current order";
                 result.IsSuccess = false;
 
                 return result;
