@@ -53,6 +53,8 @@ public partial class JulyGrocerContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
+            entity.Property(e => e.EditableContactNumber).HasMaxLength(50);
+            entity.Property(e => e.EditableContactPerson).HasMaxLength(50);
             entity.Property(e => e.FirstName).HasMaxLength(50);
             entity.Property(e => e.LastName).HasMaxLength(50);
             entity.Property(e => e.Password).HasMaxLength(50);

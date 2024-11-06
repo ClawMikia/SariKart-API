@@ -151,6 +151,9 @@ namespace JulyGrocerAPI.Controllers
                         user.LastName = userDataInput.Lastname;
                         user.Password = userDataInput.Password;
                         user.ContactNumber = userDataInput.ContactNumber;
+                        user.EditableContactPerson = userDataInput.Firstname + " " + userDataInput.Lastname;
+                        user.EditableContactNumber = userDataInput.ContactNumber;
+                        user.EditableContactAddress = userDataInput.UserStore.Address;
 
                         db.Add(user);
                         db.SaveChanges();
@@ -315,6 +318,64 @@ namespace JulyGrocerAPI.Controllers
             catch
             {
                 result.Message = "Unable to update current user account";
+                result.IsSuccess = false;
+
+                return result;
+            }
+        }
+
+        [HttpPut("editContact")]
+        public Result UpdateUserContact([FromBody] UserDataInput userDataInput)
+        {
+            var result = new Result();
+
+            try
+            {
+                // Validate if all inputs are entered
+                if (String.IsNullOrEmpty(userDataInput.EditableContactPerson) || String.IsNullOrEmpty(userDataInput.EditableContactNumber) || String.IsNullOrEmpty(userDataInput.EditableContactAddress))
+                {
+                    result.Message = "Please enter the required fields";
+                    result.IsSuccess = false;
+
+                    return result;
+                }
+
+                else
+                {
+                    // Check if the account has already existed. if it is, the user will be asked to input different username
+                    using (var db = new JulyGrocerContext())
+                    {
+                        var user = db.AppUsers.Where(x => x.Id == userDataInput.Id).FirstOrDefault();
+                        
+                        // Check if the specific user exists
+                        if (user == null)
+                        {
+                            result.Message = "No user data to update";
+                            result.IsSuccess = false;
+
+                            return result;
+                        }
+
+                        else
+                        {
+                            user.EditableContactPerson = userDataInput.EditableContactPerson;
+                            user.EditableContactNumber = userDataInput.EditableContactNumber;
+                            user.EditableContactAddress = userDataInput.EditableContactAddress;
+
+                            db.SaveChanges();
+
+                            result.Message = "Current user contact is successfully updated";
+                            result.IsSuccess = true;
+
+                            return result;
+                        }
+                    }
+                }
+            }
+
+            catch
+            {
+                result.Message = "Unable to update current user contact";
                 result.IsSuccess = false;
 
                 return result;

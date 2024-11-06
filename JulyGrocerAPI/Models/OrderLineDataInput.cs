@@ -8,5 +8,8 @@
         public int Quantity { get; set; }
         public decimal TotalAmount { get; set; }
         public int userId { get; set; }
+        public string ContactPerson { get; set; }
+        public string ContactNumber { get; set; }
+        public string ContactAddress { get; set; }
     }
 }

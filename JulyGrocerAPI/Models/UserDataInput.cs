@@ -18,6 +18,9 @@ namespace JulyGrocerAPI.Models
 
         public string? ConfirmPassword { get; set; }
         public string? ContactNumber { get; set; }
+        public string? EditableContactPerson { get; set; }
+        public string? EditableContactNumber { get; set; }
+        public string? EditableContactAddress { get; set; }
         public UserStoreDataInput? UserStore { get; set; }
     }
 }

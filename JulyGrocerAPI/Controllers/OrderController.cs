@@ -159,8 +159,21 @@ namespace JulyGrocerAPI.Controllers
         public Result PlaceOrder([FromBody] List<OrderLineDataInput> orderLineDataInputs)
         {
             var result = new Result();
+
+            if (orderLineDataInputs.Count == 0)
+            {
+                result.Message = "You have no order, please add items for order";
+                result.IsSuccess = false;
+
+                return result;
+            }
+
             var userId = orderLineDataInputs.Select(X => X.userId).FirstOrDefault();
             var totalAmount = orderLineDataInputs.Sum(x => x.TotalAmount);
+
+            var contactPerson = orderLineDataInputs.Select(X => X.ContactPerson).FirstOrDefault();
+            var contactNumber = orderLineDataInputs.Select(X => X.ContactNumber).FirstOrDefault();
+            var contactAddress = orderLineDataInputs.Select(X => X.ContactAddress).FirstOrDefault();
 
             try
             {
@@ -173,9 +186,9 @@ namespace JulyGrocerAPI.Controllers
 
                     order.UserId = userId;
                     order.TotalAmount = totalAmount;
-                    order.ContactPerson = user.FirstName + " " + user.LastName;
-                    order.ContactNumber = user.ContactNumber;
-                    order.ContactAddress = store.Address;
+                    order.ContactPerson = contactPerson;
+                    order.ContactNumber = contactNumber;
+                    order.ContactAddress = contactAddress;
 
                     db.Add(order);
                     db.SaveChanges();

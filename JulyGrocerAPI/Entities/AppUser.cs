@@ -21,6 +21,12 @@ public partial class AppUser
 
     public int UserTypeId { get; set; }
 
+    public string EditableContactPerson { get; set; } = null!;
+
+    public string EditableContactNumber { get; set; } = null!;
+
+    public string EditableContactAddress { get; set; } = null!;
+
     public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();
 
     public virtual ICollection<ShopOrder> ShopOrders { get; set; } = new List<ShopOrder>();
