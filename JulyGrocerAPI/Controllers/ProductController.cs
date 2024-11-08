@@ -233,5 +233,73 @@ namespace JulyGrocerAPI.Controllers
                 return result;
             }
         }
+
+        [HttpGet("productHistory/{branchId}/{year}/{month}")]
+        public Result getBranchProductsHistoryCount(int branchId, int year, int month)
+        {
+            var result = new Result();
+
+            try
+            {
+                using (var db = new JulyGrocerContext())
+                {
+                    //var productHistoryBranchList = db.Deliveries
+                    //    .Where(d => d.StoreId == branchId)
+                    //    .Include(o => o.Order)
+                    //    .ThenInclude(o => o.OrderLines)
+                    //    .ThenInclude(p => p.Product)
+                    //    .Where(o => o.Order.CreateDate.Month == month && o.Order.CreateDate.Year == year)
+                    //    .Select(p => new ProductHistoryDataOutput
+                    //    {
+                    //        ProductName = p.Order.OrderLines.Select(x => x.Product.Product1).First(),
+                    //        Quantity = p.Order.OrderLines.Select(x => x.Quantity).First()
+                    //    })
+                    //    .GroupBy(p => p.ProductName)
+                    //    .ToList();
+
+                    var query = from d in db.Deliveries
+                                join o in db.ShopOrders on d.OrderId equals o.Id
+                                join ol in db.OrderLines on o.Id equals ol.OrderId
+                                join p in db.Products on ol.ProductId equals p.Id
+                                where o.CreateDate.Month == month
+                                where o.CreateDate.Year == year
+                                where d.StoreId == branchId
+                                select new ProductHistoryDataOutput
+                                {
+                                    ProductName = p.Product1,
+                                    Quantity = ol.Quantity
+                                };
+
+                    var productHistoryBranchList = new List<ProductHistoryDataOutput>();
+
+                    foreach (var item in query)
+                    {
+                        productHistoryBranchList.Add(item);
+                    }
+
+                    productHistoryBranchList = productHistoryBranchList
+                        .GroupBy(x => new {x.ProductName})
+                        .Select(p => new ProductHistoryDataOutput
+                        {
+                            ProductName = p.Key.ProductName,
+                            Quantity = p.Sum(x => x.Quantity)
+                        }).ToList();
+
+                    result.JsonResultObject = productHistoryBranchList;
+                    result.Message = "You get all your sellable products history for this date for this branch";
+                    result.IsSuccess = true;
+
+                    return result;
+                }
+            }
+
+            catch (Exception ex)
+            {
+                result.Message = ex.Message;
+                result.IsSuccess = false;
+
+                return result;
+            }
+        }
     }
 }
