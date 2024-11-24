@@ -18,16 +18,70 @@ namespace JulyGrocerAPI.Controllers
 
             try
             {
-                var orders = new List<ShopOrder>();
-
                 using (var db = new JulyGrocerContext())
                 {
-                    orders = db.ShopOrders.Include(x => x.User).Include(x => x.OrderLines).ThenInclude(x => x.Product).Where(x => x.UserId == userId && x.OrderStatusId == orderStatusId).ToList();
+                    var orders = new List<OrderListItemDataOutput>();
+
+                    var query = from o in db.ShopOrders
+                                 join u in db.AppUsers on o.UserId equals u.Id
+                                join ol in db.OrderLines on o.Id equals ol.OrderId
+                                join p in db.Products on ol.ProductId equals p.Id
+                                where o.UserId == userId
+                                where o.OrderStatusId == orderStatusId
+                                select new OrderListItemDataOutput
+                                {
+                                    OrderId = o.Id,
+                                    FirstName = u.FirstName,
+                                    LastName = u.LastName,
+                                    CreateDate = o.CreateDate,
+                                    TotalAmount = o.TotalAmount,
+                                    AmountPaid = o.AmountPaid,
+                                    Change = o.Change,
+                                    ContactPerson = o.ContactPerson,
+                                    ContactNumber = o.ContactNumber,
+                                    ContactAddress = o.ContactAddress,
+                                    Products = p.Product1
+                                };
+
+                    foreach (var item in query)
+                    {
+                        orders.Add(item);
+                    }
+
+                    orders = orders
+                        .GroupBy(x => new { 
+                            x.OrderId, 
+                            x.FirstName, 
+                            x.LastName, 
+                            x.CreateDate, 
+                            x.TotalAmount, 
+                            x.AmountPaid, 
+                            x.Change,
+                            x.ContactPerson,
+                            x.ContactNumber,
+                            x.ContactAddress
+                        })
+                        .Select(o => new OrderListItemDataOutput
+                        {
+                            OrderId = o.Key.OrderId,
+                            FirstName = o.Key.FirstName,
+                            LastName = o.Key.LastName,
+                            CreateDate = o.Key.CreateDate,
+                            TotalAmount = o.Key.TotalAmount,
+                            AmountPaid = o.Key.AmountPaid,
+                            Change = o.Key.Change,
+                            ContactPerson = o.Key.ContactPerson,
+                            ContactNumber = o.Key.ContactNumber,
+                            ContactAddress = o.Key.ContactAddress,
+                            Products = string.Join(", ", o.Select(o => o.Products))
+                        }).ToList();
+
+                    // orders = db.ShopOrders.Include(x => x.User).Include(x => x.OrderLines).ThenInclude(x => x.Product).Where(x => x.UserId == userId && x.OrderStatusId == orderStatusId).ToList();
 
                     if (orderStatusId == 4)
                     {
                         orders = orders.OrderBy(x => x.CreateDate).ToList();
-                    
+
                     }
 
                     else
@@ -59,14 +113,64 @@ namespace JulyGrocerAPI.Controllers
 
             try
             {
-                var orders = new List<ShopOrder>();
 
                 using (var db = new JulyGrocerContext())
                 {
-                    orders = db.ShopOrders.Include(x => x.User).Include(x => x.OrderLines).ThenInclude(x => x.Product)
-                        .Where(x => x.OrderStatusId == searchOrderFilterDataInput.orderStatusId && 
-                        (x.User.FirstName.Contains(searchOrderFilterDataInput.customerName) || 
-                        x.User.LastName.Contains(searchOrderFilterDataInput.customerName))).ToList();
+                    var orders = new List<OrderListItemDataOutput>();
+
+                    var query = from o in db.ShopOrders
+                                join u in db.AppUsers on o.UserId equals u.Id
+                                join ol in db.OrderLines on o.Id equals ol.OrderId
+                                join p in db.Products on ol.ProductId equals p.Id
+                                where o.OrderStatusId == searchOrderFilterDataInput.orderStatusId
+                                where u.FirstName.Contains(searchOrderFilterDataInput.customerName) || u.LastName.Contains(searchOrderFilterDataInput.customerName)
+                                select new OrderListItemDataOutput
+                                {
+                                    OrderId = o.Id,
+                                    FirstName = u.FirstName,
+                                    LastName = u.LastName,
+                                    CreateDate = o.CreateDate,
+                                    TotalAmount = o.TotalAmount,
+                                    AmountPaid = o.AmountPaid,
+                                    Change = o.Change,
+                                    ContactPerson = o.ContactPerson,
+                                    ContactNumber = o.ContactNumber,
+                                    ContactAddress = o.ContactAddress,
+                                    Products = p.Product1
+                                };
+
+                    foreach (var item in query)
+                    {
+                        orders.Add(item);
+                    }
+
+                    orders = orders
+                        .GroupBy(x => new {
+                            x.OrderId,
+                            x.FirstName,
+                            x.LastName,
+                            x.CreateDate,
+                            x.TotalAmount,
+                            x.AmountPaid,
+                            x.Change,
+                            x.ContactPerson,
+                            x.ContactNumber,
+                            x.ContactAddress
+                        })
+                        .Select(o => new OrderListItemDataOutput
+                        {
+                            OrderId = o.Key.OrderId,
+                            FirstName = o.Key.FirstName,
+                            LastName = o.Key.LastName,
+                            CreateDate = o.Key.CreateDate,
+                            TotalAmount = o.Key.TotalAmount,
+                            AmountPaid = o.Key.AmountPaid,
+                            Change = o.Key.Change,
+                            ContactPerson = o.Key.ContactPerson,
+                            ContactNumber = o.Key.ContactNumber,
+                            ContactAddress = o.Key.ContactAddress,
+                            Products = string.Join(", ", o.Select(o => o.Products))
+                        }).ToList();
 
                     if (searchOrderFilterDataInput.orderStatusId == 4)
                     {
@@ -155,8 +259,8 @@ namespace JulyGrocerAPI.Controllers
             }
         }
 
-        [HttpPost("add")]
-        public Result PlaceOrder([FromBody] List<OrderLineDataInput> orderLineDataInputs)
+        [HttpPost("add/{isCashOnHand}")]
+        public Result PlaceOrder(bool isCashOnHand, [FromBody] List<OrderLineDataInput> orderLineDataInputs)
         {
             var result = new Result();
 
@@ -210,6 +314,20 @@ namespace JulyGrocerAPI.Controllers
                         db.Add(orderLine);
                         db.SaveChanges();
                     }
+
+                    
+                    var delivery = new Delivery();
+
+                    delivery.OrderId = order.Id;
+                    delivery.StoreId = 1;
+                    delivery.RiderId = 1003;
+                    delivery.VehicleId = 1;
+                    delivery.Delivered = false;
+                    delivery.CashOnHand = isCashOnHand;
+                    delivery.DeliveryDate = DateTime.Now;
+
+                    db.Add(delivery);
+                    db.SaveChanges();
 
                     result.Message = "You successfully placed an order";
                     result.IsSuccess = true;
