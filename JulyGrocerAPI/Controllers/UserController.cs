@@ -563,6 +563,46 @@ namespace JulyGrocerAPI.Controllers
 
         }
 
+        [HttpGet("cashier/{name}")]
+        public Result GetCashiers(string name)
+        {
+            var result = new Result();
+
+            try
+            {
+                var users = new List<AppUser>();
+
+                using (var db = new JulyGrocerContext())
+                {
+                    if (name == "all")
+                    {
+                        users = db.AppUsers.Where(x => x.UserTypeId == 1003).ToList();
+                    }
+
+                    else
+                    {
+                        users = db.AppUsers.Where(x => x.FirstName.Contains(name) || x.LastName.Contains(name) || x.Username.Contains(name))
+                        .Where(x => x.UserTypeId == 1003).ToList();
+                    }
+                }
+
+                result.JsonResultObject = users;
+                result.Message = "You can get the cashiers";
+                result.IsSuccess = true;
+
+                return result;
+            }
+
+            catch
+            {
+                result.Message = "Unable to get the cashiers";
+                result.IsSuccess = false;
+
+                return result;
+            }
+
+        }
+
         // User sign up registration if the user has no account yet
         [HttpPost("adminUser/add")]
         public Result AddAdminUser([FromBody] UserDataInput userDataInput)
@@ -689,6 +729,80 @@ namespace JulyGrocerAPI.Controllers
                         user.LastName = userDataInput.Lastname;
                         user.Password = userDataInput.Password;
                         user.UserTypeId = 3;
+                        user.ContactNumber = userDataInput.ContactNumber;
+
+                        db.Add(user);
+                        db.SaveChanges();
+
+                        result.Message = "New user record is successfully registered";
+                        result.IsSuccess = true;
+
+                        return result;
+                    }
+                }
+            }
+
+            catch
+            {
+                result.Message = "Unable to register new user account";
+                result.IsSuccess = false;
+
+                return result;
+            }
+        }
+
+        // User sign up registration if the user has no account yet
+        [HttpPost("cashier/add")]
+        public Result AddCashier([FromBody] UserDataInput userDataInput)
+        {
+            var result = new Result();
+
+            try
+            {
+                // Check if the account has already existed. if it is, the user will be asked to input different username
+                using (var db = new JulyGrocerContext())
+                {
+                    var user = db.AppUsers.Where(x => x.Username == userDataInput.Username && x.Id != userDataInput.Id).FirstOrDefault();
+
+                    // Check if the specific user exists
+                    if (user != null)
+                    {
+                        result.Message = "This user account " + userDataInput.Username + " already exists";
+                        result.IsSuccess = false;
+
+                        return result;
+                    }
+                }
+
+                // Validate if all inputs are entered
+                if (String.IsNullOrEmpty(userDataInput.Username) || String.IsNullOrEmpty(userDataInput.Firstname) || String.IsNullOrEmpty(userDataInput.Lastname) || String.IsNullOrEmpty(userDataInput.ContactNumber) || String.IsNullOrEmpty(userDataInput.Password) || String.IsNullOrEmpty(userDataInput.ConfirmPassword))
+                {
+                    result.Message = "Please enter the required fields";
+                    result.IsSuccess = false;
+
+                    return result;
+                }
+
+                // Validate that the password and confirmed password should match
+                else if (userDataInput.Password != userDataInput.ConfirmPassword)
+                {
+                    result.Message = "The new password should match with the confirm password";
+                    result.IsSuccess = false;
+
+                    return result;
+                }
+
+                else
+                {
+                    using (var db = new JulyGrocerContext())
+                    {
+                        var user = new AppUser();
+
+                        user.Username = userDataInput.Username;
+                        user.FirstName = userDataInput.Firstname;
+                        user.LastName = userDataInput.Lastname;
+                        user.Password = userDataInput.Password;
+                        user.UserTypeId = 1003;
                         user.ContactNumber = userDataInput.ContactNumber;
 
                         db.Add(user);

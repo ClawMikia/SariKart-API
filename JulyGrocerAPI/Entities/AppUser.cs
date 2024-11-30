@@ -21,11 +21,11 @@ public partial class AppUser
 
     public int UserTypeId { get; set; }
 
-    public string EditableContactPerson { get; set; } = null!;
+    public string? EditableContactPerson { get; set; }
 
-    public string EditableContactNumber { get; set; } = null!;
+    public string? EditableContactNumber { get; set; }
 
-    public string EditableContactAddress { get; set; } = null!;
+    public string? EditableContactAddress { get; set; }
 
     public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();
 
