@@ -1,6 +1,6 @@
 ﻿/*
- * This class is used as user input when adding or updating data
- */
+    This class model can be used as UserDataInput
+*/
 
 namespace JulyGrocerAPI.Models
 {

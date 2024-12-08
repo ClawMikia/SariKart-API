@@ -1,13 +1,10 @@
 ﻿using JulyGrocerAPI.Entities;
 using JulyGrocerAPI.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 
 /*
- * The users can register and login to account
- * The user can update user account, change password, and delete account
- */
+    This controller performs different functions for vehicle 
+*/
 
 namespace JulyGrocerAPI.Controllers
 {
@@ -16,7 +13,7 @@ namespace JulyGrocerAPI.Controllers
     public class VehicleController : Controller
     {
         [HttpGet("list")]
-        public Result GetRidersList()
+        public Result GetVehiclesList() // This route gets vehicles list
         {
             var result = new Result();
 

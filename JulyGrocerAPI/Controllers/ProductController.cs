@@ -3,6 +3,10 @@ using JulyGrocerAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+/*
+    This controller performs different functions for product 
+*/
+
 namespace JulyGrocerAPI.Controllers
 {
     [ApiController]
@@ -10,7 +14,7 @@ namespace JulyGrocerAPI.Controllers
     public class ProductController : Controller
     {
         [HttpGet("{categoryId}/{productKeyword}")]
-        public Result GetProducts(int categoryId, string productKeyword)
+        public Result GetProducts(int categoryId, string productKeyword) // This route gets products by search filter
         {
             var result = new Result();
 
@@ -65,7 +69,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpGet("{id}")]
-        public Result GetProduct(int id)
+        public Result GetProduct(int id) // This route gets specific product
         {
             var result = new Result();
 
@@ -96,7 +100,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpPost("add")]
-        public Result AddNewProduct([FromBody] ProductDataInput productDataInput)
+        public Result AddNewProduct([FromBody] ProductDataInput productDataInput) // This route add new product record
         {
             var result = new Result();
 
@@ -143,7 +147,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpPut("edit")]
-        public Result EditProduct([FromBody] ProductDataInput productDataInput)
+        public Result EditProduct([FromBody] ProductDataInput productDataInput) // This route updates current product
         {
             var result = new Result();
 
@@ -189,7 +193,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpGet("productHistory/{year}/{month}")]
-        public Result getProductsHistoryCount(int year, int month)
+        public Result getProductsHistoryCount(int year, int month) // This route gets every product with no. of times purchased for each
         {
             var result = new Result();
 
@@ -235,7 +239,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpGet("productHistory/{branchId}/{year}/{month}")]
-        public Result getBranchProductsHistoryCount(int branchId, int year, int month)
+        public Result getBranchProductsHistoryCount(int branchId, int year, int month) // This route gets every branch with no. of times purchased for each product
         {
             var result = new Result();
 
@@ -243,20 +247,6 @@ namespace JulyGrocerAPI.Controllers
             {
                 using (var db = new JulyGrocerContext())
                 {
-                    //var productHistoryBranchList = db.Deliveries
-                    //    .Where(d => d.StoreId == branchId)
-                    //    .Include(o => o.Order)
-                    //    .ThenInclude(o => o.OrderLines)
-                    //    .ThenInclude(p => p.Product)
-                    //    .Where(o => o.Order.CreateDate.Month == month && o.Order.CreateDate.Year == year)
-                    //    .Select(p => new ProductHistoryDataOutput
-                    //    {
-                    //        ProductName = p.Order.OrderLines.Select(x => x.Product.Product1).First(),
-                    //        Quantity = p.Order.OrderLines.Select(x => x.Quantity).First()
-                    //    })
-                    //    .GroupBy(p => p.ProductName)
-                    //    .ToList();
-
                     var query = from d in db.Deliveries
                                 join o in db.ShopOrders on d.OrderId equals o.Id
                                 join ol in db.OrderLines on o.Id equals ol.OrderId

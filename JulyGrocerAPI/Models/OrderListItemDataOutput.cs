@@ -1,4 +1,8 @@
-﻿namespace JulyGrocerAPI.Models
+﻿/*
+    This class model can be used as OrderListItemDataOutput
+*/
+
+namespace JulyGrocerAPI.Models
 {
     public class OrderListItemDataOutput
     {

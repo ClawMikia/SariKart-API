@@ -2,6 +2,10 @@
 using JulyGrocerAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 
+/*
+    This controller performs different functions for category 
+*/
+
 namespace JulyGrocerAPI.Controllers
 {
     [ApiController]
@@ -9,7 +13,7 @@ namespace JulyGrocerAPI.Controllers
     public class CategoryController : Controller
     {
         [HttpGet]
-        public Result GetCategories()
+        public Result GetCategories() // This route gets all the categories
         {
             var result = new Result();
 
@@ -40,7 +44,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpGet("list")]
-        public Result GetCategoriesList()
+        public Result GetCategoriesList() // This route gets all the categories list
         {
             var result = new Result();
 
@@ -75,7 +79,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpPost("add")]
-        public Result AddNewCategory([FromBody] CategoryDataInput categoryDataInput)
+        public Result AddNewCategory([FromBody] CategoryDataInput categoryDataInput) // This route allows users to add new category
         {
             var result = new Result();
 

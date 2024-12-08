@@ -1,4 +1,9 @@
-﻿namespace JulyGrocerAPI.Models
+﻿/*
+    This class model can be used as OrderContactDataInput
+*/
+
+
+namespace JulyGrocerAPI.Models
 {
     public class OrderContactDataInput
     {

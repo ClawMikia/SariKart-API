@@ -1,8 +1,10 @@
 ﻿using JulyGrocerAPI.Entities;
 using JulyGrocerAPI.Models;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+
+/*
+    This controller performs different functions for delivery 
+*/
 
 namespace JulyGrocerAPI.Controllers
 {
@@ -11,7 +13,7 @@ namespace JulyGrocerAPI.Controllers
     public class DeliveryController : Controller
     {
         [HttpGet("{orderId}")]
-        public Result GetOrderDelivery(int orderId)
+        public Result GetOrderDelivery(int orderId) // This route gets an order delivery by order
         {
             var result = new Result();
 

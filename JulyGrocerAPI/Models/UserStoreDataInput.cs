@@ -1,4 +1,8 @@
-﻿namespace JulyGrocerAPI.Models
+﻿/*
+    This class model can be used as UserStoreDataInput
+*/
+
+namespace JulyGrocerAPI.Models
 {
     public class UserStoreDataInput
     {

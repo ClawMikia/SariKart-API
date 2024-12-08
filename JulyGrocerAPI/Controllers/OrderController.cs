@@ -1,9 +1,12 @@
 ﻿using JulyGrocerAPI.Entities;
 using JulyGrocerAPI.Models;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+
+/*
+    This controller performs different functions for order 
+*/
 
 namespace JulyGrocerAPI.Controllers
 {
@@ -12,7 +15,7 @@ namespace JulyGrocerAPI.Controllers
     public class OrderController : Controller
     {
         [HttpGet("{userId}/{orderStatusId}")]
-        public Result GetUserOrders(int userId, int orderStatusId)
+        public Result GetUserOrders(int userId, int orderStatusId) // This route gets user orders by search filter
         {
             var result = new Result();
 
@@ -76,8 +79,6 @@ namespace JulyGrocerAPI.Controllers
                             Products = string.Join(", ", o.Select(o => o.Products))
                         }).ToList();
 
-                    // orders = db.ShopOrders.Include(x => x.User).Include(x => x.OrderLines).ThenInclude(x => x.Product).Where(x => x.UserId == userId && x.OrderStatusId == orderStatusId).ToList();
-
                     if (orderStatusId == 4)
                     {
                         orders = orders.OrderBy(x => x.CreateDate).ToList();
@@ -107,7 +108,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpPost("adminOrders")]
-        public Result GetOrdersByFilter(SearchOrderFilterDataInput searchOrderFilterDataInput)
+        public Result GetOrdersByFilter(SearchOrderFilterDataInput searchOrderFilterDataInput) // This route gets all orders by search filter
         {
             var result = new Result();
 
@@ -200,7 +201,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpGet("{orderId}")]
-        public Result GetOrder(int orderId)
+        public Result GetOrder(int orderId) // This route gets a specific order
         {
             var result = new Result();
 
@@ -230,7 +231,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpGet("orderStatus")]
-        public Result GetOrderStatuses()
+        public Result GetOrderStatuses() // This route gets all order statuses
         {
             var result = new Result();
 
@@ -260,10 +261,11 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpPost("add/{isCashOnHand}")]
-        public Result PlaceOrder(bool isCashOnHand, [FromBody] List<OrderLineDataInput> orderLineDataInputs)
+        public Result PlaceOrder(bool isCashOnHand, [FromBody] List<OrderLineDataInput> orderLineDataInputs) // This route updates current order delivery's cash on hand and creates an order
         {
             var result = new Result();
 
+            // If the customer doesn't add product into cart, notify the customer
             if (orderLineDataInputs.Count == 0)
             {
                 result.Message = "You have no order, please add items for order";
@@ -284,8 +286,7 @@ namespace JulyGrocerAPI.Controllers
                 using (var db = new JulyGrocerContext())
                 {
                     var user = db.AppUsers.Where(x => x.Id == userId).FirstOrDefault();
-                    var store = db.UserStores.Where(x => x.UserId == userId).FirstOrDefault();
-
+                    
                     var order = new ShopOrder();
 
                     order.UserId = userId;
@@ -297,6 +298,7 @@ namespace JulyGrocerAPI.Controllers
                     db.Add(order);
                     db.SaveChanges();
 
+                    // Add every order line in the order
                     foreach (var item in orderLineDataInputs)
                     {
                         var product = db.Products.Where(x => x.Id == item.ProductId).FirstOrDefault();
@@ -315,7 +317,7 @@ namespace JulyGrocerAPI.Controllers
                         db.SaveChanges();
                     }
 
-                    
+                    // Add new delivery
                     var delivery = new Delivery();
 
                     delivery.OrderId = order.Id;
@@ -346,7 +348,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpPost("delivery/save")]
-        public Result UpdateOrderDelivery([FromBody] OrderDeliveryDataInput orderDeliveryDataInput)
+        public Result UpdateOrderDelivery([FromBody] OrderDeliveryDataInput orderDeliveryDataInput) // This route updates current order delivery 
         {
             var result = new Result();
 
@@ -362,15 +364,36 @@ namespace JulyGrocerAPI.Controllers
                     return result;
                 }
 
-                // Validate if amount paid is entered
-                //if (orderDeliveryDataInput.AmountPaid <= 0)
-                //{
-                //    result.Message = "Amount paid should be entered";
-                //    result.IsSuccess = false;
+                // Get the order total amount
+                using (var db = new JulyGrocerContext())
+                {
+                    var totalAmount = db.ShopOrders.Where(o => o.Id == orderDeliveryDataInput.OrderId).Select(
+                            x => new
+                            {
+                                x.TotalAmount
+                            }
+                        ).FirstOrDefault();
 
-                //    return result;
-                //}
+                    // Check if the amount paid should be greater that total amount
+                    if (totalAmount.TotalAmount > orderDeliveryDataInput.AmountPaid)
+                    {
+                        result.Message = "The amount paid should be higher than total amount";
+                        result.IsSuccess = false;
 
+                        return result;
+                    }
+                }
+
+                //Validate if amount paid is entered
+                if (orderDeliveryDataInput.AmountPaid <= 0)
+                {
+                    result.Message = "Amount paid should be entered";
+                    result.IsSuccess = false;
+
+                    return result;
+                }
+
+                // Update delivery
                 using (var db = new JulyGrocerContext())
                 {
                     var delivery = db.Deliveries.Where(x => x.OrderId == orderDeliveryDataInput.OrderId).FirstOrDefault();
@@ -429,7 +452,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpGet("delivery/{orderId}")]
-        public Result GetOrderDelivery(int orderId)
+        public Result GetOrderDelivery(int orderId) // This route gets the current order delivery
         {
             var result = new Result();
 
@@ -459,7 +482,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpPut("followUp/{orderId}")]
-        public Result FollowUpOrder(int orderId)
+        public Result FollowUpOrder(int orderId) // This route updates the order to follow-up
         {
             var result = new Result();
 
@@ -498,7 +521,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpPut("cancel/{orderId}")]
-        public Result CancelOrder(int orderId)
+        public Result CancelOrder(int orderId) // This method cancels current order
         {
             var result = new Result();
 
@@ -537,7 +560,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpPut("editOrderContact")]
-        public Result EditOrderContactInfo([FromBody] OrderContactDataInput orderContactDataInput)
+        public Result EditOrderContactInfo([FromBody] OrderContactDataInput orderContactDataInput) // This route updates current order contact details
         {
             var result = new Result();
 

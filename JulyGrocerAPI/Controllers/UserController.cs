@@ -2,12 +2,10 @@
 using JulyGrocerAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 
 /*
- * The users can register and login to account
- * The user can update user account, change password, and delete account
- */
+    This controller performs different functions for user 
+*/
 
 namespace JulyGrocerAPI.Controllers
 {
@@ -15,9 +13,8 @@ namespace JulyGrocerAPI.Controllers
     [Route("api/user")]
     public class UserController : Controller
     {
-        // API Controller Method for user login. If no data found, the input username and password in incorrect
         [HttpPost("login")]
-        public Result Login([FromBody] UserLoginDataInput userLoginDataInput)
+        public Result Login([FromBody] UserLoginDataInput userLoginDataInput) // API Controller Method for user login. If no data found, the input username and password in incorrect
         {
             var result = new Result();
 
@@ -69,7 +66,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpGet("{id}")]
-        public Result GetUser(int id)
+        public Result GetUser(int id) // This route gets a specific user
         {
             var result = new Result();
 
@@ -99,9 +96,8 @@ namespace JulyGrocerAPI.Controllers
 
         }
 
-        // User sign up registration if the user has no account yet
         [HttpPost("add")]
-        public Result InsertUser([FromBody] UserDataInput userDataInput)
+        public Result InsertUser([FromBody] UserDataInput userDataInput) // User sign up registration if the user has no account yet
         {
             var result = new Result();
 
@@ -184,7 +180,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpPut("edit")]
-        public Result UpdateUser([FromBody] UserDataInput userDataInput)
+        public Result UpdateUser([FromBody] UserDataInput userDataInput) // This route updates current user
         {
             var result = new Result();
 
@@ -219,7 +215,7 @@ namespace JulyGrocerAPI.Controllers
 
                         else
                         {
-                            // Check if the specific user exists
+                            // Check if the specific username exists
                             if (usernameExists != null)
                             {
                                 result.Message = "This user account " + userDataInput.Username + " already exists";
@@ -257,7 +253,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpPut("editAdminUser")]
-        public Result UpdateAdminUser([FromBody] UserDataInput userDataInput)
+        public Result UpdateAdminUser([FromBody] UserDataInput userDataInput) // This route updates current admin user
         {
             var result = new Result();
 
@@ -291,7 +287,7 @@ namespace JulyGrocerAPI.Controllers
 
                         else
                         {
-                            // Check if the specific user exists
+                            // Check if the specific username exists
                             if (usernameExists != null)
                             {
                                 result.Message = "This user account " + userDataInput.Username + " already exists";
@@ -325,7 +321,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpPut("editContact")]
-        public Result UpdateUserContact([FromBody] UserDataInput userDataInput)
+        public Result UpdateUserContact([FromBody] UserDataInput userDataInput) // This route updates current user contact details
         {
             var result = new Result();
 
@@ -382,9 +378,8 @@ namespace JulyGrocerAPI.Controllers
             }
         }
 
-        // The user can change password for their account
         [HttpPut("changePassword")]
-        public Result UpdateUserPassword([FromBody] UserDataInput userDataInput)
+        public Result UpdateUserPassword([FromBody] UserDataInput userDataInput) // The user can change password for their account
         {
             var result = new Result();
 
@@ -447,7 +442,7 @@ namespace JulyGrocerAPI.Controllers
             }
         }
 
-        [HttpGet("adminUser/{id}/{name}")]
+        [HttpGet("adminUser/{id}/{name}")] // This route gets admin users by search filter
         public Result GetAdminUsers(int id, string name)
         {
             var result = new Result();
@@ -488,7 +483,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpGet("list/riders")]
-        public Result GetRidersList()
+        public Result GetRidersList() // This route gets riders list
         {
             var result = new Result();
 
@@ -524,7 +519,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpGet("rider/{name}")]
-        public Result GetRiders(string name)
+        public Result GetRiders(string name) // This route gets riders by search filter
         {
             var result = new Result();
 
@@ -564,7 +559,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpGet("cashier/{name}")]
-        public Result GetCashiers(string name)
+        public Result GetCashiers(string name) // This route gets cashiers by search filter
         {
             var result = new Result();
 
@@ -603,8 +598,7 @@ namespace JulyGrocerAPI.Controllers
 
         }
 
-        // User sign up registration if the user has no account yet
-        [HttpPost("adminUser/add")]
+        [HttpPost("adminUser/add")] // This route adds new admin user record
         public Result AddAdminUser([FromBody] UserDataInput userDataInput)
         {
             var result = new Result();
@@ -616,7 +610,7 @@ namespace JulyGrocerAPI.Controllers
                 {
                     var user = db.AppUsers.Where(x => x.Username == userDataInput.Username && x.Id != userDataInput.Id).FirstOrDefault();
 
-                    // Check if the specific user exists
+                    // Check if the specific username exists
                     if (user != null)
                     {
                         result.Message = "This user account " + userDataInput.Username + " already exists";
@@ -677,9 +671,8 @@ namespace JulyGrocerAPI.Controllers
             }
         }
 
-        // User sign up registration if the user has no account yet
         [HttpPost("rider/add")]
-        public Result AddRider([FromBody] UserDataInput userDataInput)
+        public Result AddRider([FromBody] UserDataInput userDataInput) //This route adds new rider record
         {
             var result = new Result();
 
@@ -690,7 +683,7 @@ namespace JulyGrocerAPI.Controllers
                 {
                     var user = db.AppUsers.Where(x => x.Username == userDataInput.Username && x.Id != userDataInput.Id).FirstOrDefault();
 
-                    // Check if the specific user exists
+                    // Check if the specific username exists
                     if (user != null)
                     {
                         result.Message = "This user account " + userDataInput.Username + " already exists";
@@ -751,9 +744,8 @@ namespace JulyGrocerAPI.Controllers
             }
         }
 
-        // User sign up registration if the user has no account yet
         [HttpPost("cashier/add")]
-        public Result AddCashier([FromBody] UserDataInput userDataInput)
+        public Result AddCashier([FromBody] UserDataInput userDataInput) //This route adds new cashier record
         {
             var result = new Result();
 
@@ -825,9 +817,8 @@ namespace JulyGrocerAPI.Controllers
             }
         }
 
-        // User sign up registration if the user has no account yet
         [HttpPut("adminUser/edit")]
-        public Result UpdateOtAdminUser([FromBody] UserDataInput userDataInput)
+        public Result UpdateOtAdminUser([FromBody] UserDataInput userDataInput) // This route updates current admin user
         {
             var result = new Result();
 
@@ -898,7 +889,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpGet("adminUser/get/{id}")]
-        public Result GetAdminUser(int id)
+        public Result GetAdminUser(int id) // This route gets a specific admin user
         {
             var result = new Result();
 
@@ -927,10 +918,9 @@ namespace JulyGrocerAPI.Controllers
             }
 
         }
-
-        // The user account will be deleted
+        
         [HttpDelete("adminUser/delete/{id}")]
-        public Result DeleteAdminUser(int id)
+        public Result DeleteAdminUser(int id) // This route deletes current admin user
         {
             var result = new Result();
 

@@ -5,9 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 /*
- * The users can register and login to account
- * The user can update user account, change password, and delete account
- */
+    This controller performs different functions for store branch 
+*/
 
 namespace JulyGrocerAPI.Controllers
 {
@@ -16,7 +15,7 @@ namespace JulyGrocerAPI.Controllers
     public class StoreBranchController : Controller
     {
         [HttpGet]
-        public Result GetBranches()
+        public Result GetBranches() // This route gets all store branches
         {
             var result = new Result();
 
@@ -46,7 +45,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpGet("list")]
-        public Result GetBranchList()
+        public Result GetBranchList() // This route gets store branches list
         {
             var result = new Result();
 
@@ -81,7 +80,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpGet("{id}")]
-        public Result GetBranch(int id)
+        public Result GetBranch(int id) // This route gets a specific branch
         {
             var result = new Result();
 
@@ -110,9 +109,8 @@ namespace JulyGrocerAPI.Controllers
             }
         }
 
-        // User sign up registration if the user has no account yet
         [HttpPost("add")]
-        public Result InsertNewBranch([FromBody] StoreBranchDataInput storeBranchDataInput)
+        public Result InsertNewBranch([FromBody] StoreBranchDataInput storeBranchDataInput) // This route adds new store branch record
         {
             var result = new Result();
 
@@ -159,7 +157,7 @@ namespace JulyGrocerAPI.Controllers
         }
 
         [HttpPut("edit")]
-        public Result UpdateNewBranch([FromBody] StoreBranchDataInput storeBranchDataInput)
+        public Result UpdateNewBranch([FromBody] StoreBranchDataInput storeBranchDataInput) // This route updates current store branch
         {
             var result = new Result();
 
@@ -219,7 +217,7 @@ namespace JulyGrocerAPI.Controllers
 
         // The user account will be deleted
         [HttpDelete("delete/{id}")]
-        public Result DeleteBranch(int id)
+        public Result DeleteBranch(int id) // This route deletes current store branch
         {
             var result = new Result();
 
