@@ -147,6 +147,7 @@ namespace SariKartAPI.Controllers
                         user.LastName = userDataInput.Lastname;
                         user.Password = userDataInput.Password;
                         user.ContactNumber = userDataInput.ContactNumber;
+                        user.UserTypeId = 1;
                         user.EditableContactPerson = userDataInput.Firstname + " " + userDataInput.Lastname;
                         user.EditableContactNumber = userDataInput.ContactNumber;
                         user.EditableContactAddress = userDataInput.UserStore.Address;
