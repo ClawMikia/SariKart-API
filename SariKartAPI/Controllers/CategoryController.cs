@@ -1,6 +1,9 @@
 ﻿using SariKartAPI.Entities;
 using SariKartAPI.Models;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.IO;
+using static System.Net.Mime.MediaTypeNames;
 
 /*
     This controller performs different functions for category 
@@ -12,6 +15,25 @@ namespace SariKartAPI.Controllers
     [Route("api/category")]
     public class CategoryController : Controller
     {
+        [HttpGet("getCategoryImage/{id}/{filename}")]
+        public async Task<IActionResult> GetImage(int id, string fileName)
+        {
+            // Define the path where the image will be stored
+            var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Images\\Categories\\" + id.ToString() + "\\" + fileName);
+
+            if (System.IO.File.Exists(uploadPath))
+            {
+                var fileBytes = await System.IO.File.ReadAllBytesAsync(uploadPath);
+                var outputFile = File(fileBytes, "image/png");
+                return outputFile;
+            }
+
+            else
+            {
+                return NotFound("Image not found");
+            }
+        }
+
         [HttpGet]
         public Result GetCategories() // This route gets all the categories
         {
@@ -79,14 +101,14 @@ namespace SariKartAPI.Controllers
         }
 
         [HttpPost("add")]
-        public Result AddNewCategory([FromBody] CategoryDataInput categoryDataInput) // This route allows users to add new category
+        public async Task<Result> AddNewCategory(CategoryDataInput categoryDataInput) // This route allows users to add new category
         {
             var result = new Result();
 
             try
             {
                 // Validate if all inputs are entered
-                if (categoryDataInput.Category.Length == 0 || categoryDataInput.Icon.Length == 0)
+                if (categoryDataInput.Category.Length == 0 || categoryDataInput.Icon == null)
                 {
                     result.Message = "Please enter the required fields";
                     result.IsSuccess = false;
@@ -100,10 +122,28 @@ namespace SariKartAPI.Controllers
                     Category category = new Category();
 
                     category.Category1 = categoryDataInput.Category;
-                    category.Icon = categoryDataInput.Icon;
+                    category.Icon = categoryDataInput.Icon.FileName;
 
                     db.Add(category);
                     db.SaveChanges();
+
+                    // Define the path where the image will be stored
+                    var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Images\\Categories\\" + category.Id.ToString());
+
+                    // Make folder of a category if not exists
+                    if (!Directory.Exists(uploadPath))
+                    {
+                        Directory.CreateDirectory(uploadPath);
+                    }
+
+                    // Get the file's full path
+                    var filePath = Path.Combine(uploadPath, categoryDataInput.Icon.FileName);
+
+                    // Save the uploaded file
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await categoryDataInput.Icon.CopyToAsync(stream);
+                    }
                 }
 
                 result.Message = "New category added successfully";
@@ -115,6 +155,63 @@ namespace SariKartAPI.Controllers
             catch
             {
                 result.Message = "Unable to add new category";
+                result.IsSuccess = false;
+
+                return result;
+            }
+        }
+
+        [HttpPut("edit")]
+        public async Task<Result> EditCategory(CategoryDataInput categoryDataInput) // This route allows users to add new category
+        {
+            var result = new Result();
+
+            try
+            {
+                // Validate if all inputs are entered
+                if (categoryDataInput.Category.Length == 0 || categoryDataInput.Icon == null)
+                {
+                    result.Message = "Please enter the required fields";
+                    result.IsSuccess = false;
+
+                    return result;
+                }
+
+                // If all fields are entered, add this new category to the list
+                using (var db = new SariKartContext())
+                {
+                    var category = db.Categories.FirstOrDefault(x => x.Id == categoryDataInput.Id);
+
+                    category.Category1 = categoryDataInput.Category;
+                    category.Icon = categoryDataInput.Icon.FileName;
+
+                    db.SaveChanges();
+
+                    // Define the path where the image will be stored
+                    var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Images\\Categories\\" + category.Id.ToString());
+
+                    Directory.Delete(uploadPath, true); // Delete existing folder
+                    Directory.CreateDirectory(uploadPath); // Create new one as replacement
+
+                    // Get the file's full path
+                    var filePath = Path.Combine(uploadPath, categoryDataInput.Icon.FileName);
+
+                    // Save the uploaded file
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await categoryDataInput.Icon.CopyToAsync(stream);
+                    }
+                }
+
+                result.Message = "Current category updated successfully";
+                result.IsSuccess = true;
+
+                return result;
+            }
+
+            catch
+            {
+                result.Message = "Unable to update current category";
                 result.IsSuccess = false;
 
                 return result;

@@ -13,11 +13,11 @@ public partial class Product
 
     public decimal Price { get; set; }
 
-    public byte[] Picture { get; set; } = null!;
-
     public string Unit { get; set; } = null!;
 
     public int Stock { get; set; }
+
+    public string Picture { get; set; } = null!;
 
     public virtual Category Category { get; set; } = null!;
 

@@ -13,6 +13,25 @@ namespace SariKartAPI.Controllers
     [Route("api/product")]
     public class ProductController : Controller
     {
+        [HttpGet("getProductImage/{id}/{filename}")]
+        public async Task<IActionResult> GetImage(int id, string fileName)
+        {
+            // Define the path where the image will be stored
+            var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Images\\Products\\" + id.ToString() + "\\" + fileName);
+
+            if (System.IO.File.Exists(uploadPath))
+            {
+                var fileBytes = await System.IO.File.ReadAllBytesAsync(uploadPath);
+                var outputFile = File(fileBytes, "image/png");
+                return outputFile;
+            }
+
+            else
+            {
+                return NotFound("Image not found");
+            }
+        }
+
         [HttpGet("{categoryId}/{productKeyword}")]
         public Result GetProducts(int categoryId, string productKeyword) // This route gets products by search filter
         {
@@ -100,14 +119,17 @@ namespace SariKartAPI.Controllers
         }
 
         [HttpPost("add")]
-        public Result AddNewProduct([FromBody] ProductDataInput productDataInput) // This route add new product record
+        public async Task<Result> AddNewProduct(IFormFile file, [FromForm] string product, [FromForm] int categoryId, [FromForm] decimal price, [FromForm] string unit, [FromForm] int stock) // This route add new product record
         {
+            product = product.Replace("\"", "");
+            unit = unit.Replace("\"", "");
+
             var result = new Result();
 
             try
             {
                 // Validate if all inputs are entered
-                if (productDataInput.Product.Length == 0 || productDataInput.CategoryId <= 0 || productDataInput.Price <= 0 || productDataInput.Picture.Length == 0 || productDataInput.Unit.Length == 0 || productDataInput.Stock <= 0)
+                if (product.Length == 0 || categoryId <= 0 || price <= 0 || file == null || unit.Length == 0 || stock <= 0)
                 {
                     result.Message = "Please enter the required fields";
                     result.IsSuccess = false;
@@ -118,17 +140,35 @@ namespace SariKartAPI.Controllers
                 // If all fields are entered, add this new product to the list
                 using (var db = new SariKartContext())
                 {
-                    Product product = new Product();
+                    Product currentProduct = new Product();
 
-                    product.Product1 = productDataInput.Product;
-                    product.CategoryId = productDataInput.CategoryId;
-                    product.Price = productDataInput.Price;
-                    product.Picture = productDataInput.Picture;
-                    product.Unit = productDataInput.Unit;
-                    product.Stock = productDataInput.Stock;
+                    currentProduct.Product1 = product;
+                    currentProduct.CategoryId = categoryId;
+                    currentProduct.Price = price;
+                    currentProduct.Picture = file.FileName;
+                    currentProduct.Unit = unit;
+                    currentProduct.Stock = stock;
 
-                    db.Add(product);
+                    db.Add(currentProduct);
                     db.SaveChanges();
+
+                    // Define the path where the image will be stored
+                    var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Images\\Products\\" + currentProduct.Id.ToString());
+
+                    // Make folder of a category if not exists
+                    if (!Directory.Exists(uploadPath))
+                    {
+                        Directory.CreateDirectory(uploadPath);
+                    }
+
+                    // Get the file's full patht
+                    var filePath = Path.Combine(uploadPath, file.FileName);
+
+                    // Save the uploaded file
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await file.CopyToAsync(stream);
+                    }
                 }
 
                 result.Message = "New product added successfully";
@@ -137,7 +177,7 @@ namespace SariKartAPI.Controllers
                 return result;
             }
 
-            catch
+            catch(Exception e)
             {
                 result.Message = "Unable to add new product";
                 result.IsSuccess = false;
@@ -147,14 +187,17 @@ namespace SariKartAPI.Controllers
         }
 
         [HttpPut("edit")]
-        public Result EditProduct([FromBody] ProductDataInput productDataInput) // This route updates current product
+        public async Task<Result> EditProduct(IFormFile? file, [FromForm] int id, [FromForm] string product, [FromForm] int categoryId, [FromForm] decimal price, [FromForm] string unit, [FromForm] int stock) // This route updates current product
         {
+            product = product.Replace("\"", "");
+            unit = unit.Replace("\"", "");
+
             var result = new Result();
 
             try
             {
                 // Validate if all inputs are entered
-                if (productDataInput.Product.Length == 0 || productDataInput.CategoryId <= 0 || productDataInput.Price <= 0 || productDataInput.Picture.Length == 0 || productDataInput.Unit.Length == 0)
+                if (product.Length == 0 || categoryId <= 0 || price <= 0 || unit.Length == 0 || stock <= 0)
                 {
                     result.Message = "Please enter the required fields";
                     result.IsSuccess = false;
@@ -165,16 +208,39 @@ namespace SariKartAPI.Controllers
                 // If all fields are entered, add this new product to the list
                 using (var db = new SariKartContext())
                 {
-                    var product = db.Products.Where(x => x.Id == productDataInput.Id).FirstOrDefault();
+                    var currentProduct = db.Products.Where(x => x.Id == id).FirstOrDefault();
 
-                    product.Product1 = productDataInput.Product;
-                    product.CategoryId = productDataInput.CategoryId;
-                    product.Price = productDataInput.Price;
-                    product.Picture = productDataInput.Picture;
-                    product.Unit = productDataInput.Unit;
-                    product.Stock = productDataInput.Stock;
+                    currentProduct.Product1 = product;
+                    currentProduct.CategoryId = categoryId;
+                    currentProduct.Price = price;
+                    currentProduct.Unit = unit;
+                    currentProduct.Stock = stock;
+
+                    if (file != null)
+                    {
+                        currentProduct.Picture = file.FileName;
+                    }
 
                     db.SaveChanges();
+
+                    // If there are changes to the product file image
+                    if (file != null)
+                    {
+                        // Define the path where the image will be stored
+                        var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Images\\Products\\" + id.ToString());
+
+                        Directory.Delete(uploadPath, true); // Delete existing folder
+                        Directory.CreateDirectory(uploadPath); // Create new one as replacement
+
+                        // Get the file's full path
+                        var filePath = Path.Combine(uploadPath, file.FileName);
+
+                        // Save the uploaded file
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await file.CopyToAsync(stream);
+                        }
+                    }
                 }
 
                 result.Message = "Current product updated successfully";

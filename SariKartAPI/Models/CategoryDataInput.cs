@@ -5,9 +5,10 @@
 namespace SariKartAPI.Models
 {
     public class CategoryDataInput
-    { 
-        public string Category { get; set; }
-        public byte[] Icon { get; set; }
-    
+    {
+        public int? Id { get; set; }
+        public string? Category { get; set; }
+        public IFormFile? Icon { get; set; }
+
     }
 }

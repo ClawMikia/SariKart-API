@@ -73,7 +73,7 @@ public partial class SariKartContext : DbContext
             entity.Property(e => e.Category1)
                 .HasMaxLength(50)
                 .HasColumnName("Category");
-            entity.Property(e => e.Icon).HasColumnType("image");
+            entity.Property(e => e.Icon).HasMaxLength(50);
         });
 
         modelBuilder.Entity<Delivery>(entity =>
@@ -133,7 +133,6 @@ public partial class SariKartContext : DbContext
         {
             entity.ToTable("Product");
 
-            entity.Property(e => e.Picture).HasColumnType("image");
             entity.Property(e => e.Price).HasColumnType("decimal(6, 2)");
             entity.Property(e => e.Product1)
                 .HasMaxLength(50)
