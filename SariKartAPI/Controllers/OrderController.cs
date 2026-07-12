@@ -5,8 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 /*
-    This controller performs different functions for order 
-*/
+    This controller performs different functions for order
+ */
 
 namespace SariKartAPI.Controllers
 {
@@ -14,6 +14,13 @@ namespace SariKartAPI.Controllers
     [Route("api/order")]
     public class OrderController : Controller
     {
+        private readonly SariKartContext _db;
+
+        public OrderController(SariKartContext db)
+        {
+            _db = db;
+        }
+
         [HttpGet("{userId}/{orderStatusId}")]
         public Result GetUserOrders(int userId, int orderStatusId) // This route gets user orders by search filter
         {
@@ -21,90 +28,65 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                using (var db = new SariKartContext())
-                {
-                    var orders = new List<OrderListItemDataOutput>();
-
-                    var query = from o in db.ShopOrders
-                                 join u in db.AppUsers on o.UserId equals u.Id
-                                join ol in db.OrderLines on o.Id equals ol.OrderId
-                                join p in db.Products on ol.ProductId equals p.Id
-                                where o.UserId == userId
-                                where o.OrderStatusId == orderStatusId
-                                select new OrderListItemDataOutput
-                                {
-                                    OrderId = o.Id,
-                                    FirstName = u.FirstName,
-                                    LastName = u.LastName,
-                                    CreateDate = o.CreateDate,
-                                    TotalAmount = o.TotalAmount,
-                                    AmountPaid = o.AmountPaid,
-                                    Change = o.Change,
-                                    ContactPerson = o.ContactPerson,
-                                    ContactNumber = o.ContactNumber,
-                                    ContactAddress = o.ContactAddress,
-                                    Products = p.Product1
-                                };
-
-                    foreach (var item in query)
+                var orders = _db.ShopOrders.AsNoTracking()
+                    .Where(o => o.UserId == userId && o.OrderStatusId == orderStatusId)
+                    .OrderByDescending(o => o.CreateDate)
+                    .SelectMany(o => o.OrderLines.Select(ol => new OrderListItemDataOutput
                     {
-                        orders.Add(item);
-                    }
-
-                    orders = orders
-                        .GroupBy(x => new { 
-                            x.OrderId, 
-                            x.FirstName, 
-                            x.LastName, 
-                            x.CreateDate, 
-                            x.TotalAmount, 
-                            x.AmountPaid, 
-                            x.Change,
-                            x.ContactPerson,
-                            x.ContactNumber,
-                            x.ContactAddress
-                        })
-                        .Select(o => new OrderListItemDataOutput
-                        {
-                            OrderId = o.Key.OrderId,
-                            FirstName = o.Key.FirstName,
-                            LastName = o.Key.LastName,
-                            CreateDate = o.Key.CreateDate,
-                            TotalAmount = o.Key.TotalAmount,
-                            AmountPaid = o.Key.AmountPaid,
-                            Change = o.Key.Change,
-                            ContactPerson = o.Key.ContactPerson,
-                            ContactNumber = o.Key.ContactNumber,
-                            ContactAddress = o.Key.ContactAddress,
-                            Products = string.Join(", ", o.Select(o => o.Products))
-                        }).ToList();
-
-                    if (orderStatusId == 4)
+                        OrderId = o.Id,
+                        FirstName = o.User.FirstName,
+                        LastName = o.User.LastName,
+                        CreateDate = o.CreateDate,
+                        TotalAmount = o.TotalAmount,
+                        AmountPaid = o.AmountPaid,
+                        Change = o.Change,
+                        ContactPerson = o.ContactPerson,
+                        ContactNumber = o.ContactNumber,
+                        ContactAddress = o.ContactAddress,
+                        Products = ol.Product.Product1
+                    }))
+                    .ToList()
+                    .GroupBy(x => new
                     {
-                        orders = orders.OrderBy(x => x.CreateDate).ToList();
-
-                    }
-
-                    else
+                        x.OrderId,
+                        x.FirstName,
+                        x.LastName,
+                        x.CreateDate,
+                        x.TotalAmount,
+                        x.AmountPaid,
+                        x.Change,
+                        x.ContactPerson,
+                        x.ContactNumber,
+                        x.ContactAddress
+                    })
+                    .Select(g => new OrderListItemDataOutput
                     {
-                        orders = orders.OrderByDescending(x => x.CreateDate).ToList();
-                    }
+                        OrderId = g.Key.OrderId,
+                        FirstName = g.Key.FirstName,
+                        LastName = g.Key.LastName,
+                        CreateDate = g.Key.CreateDate,
+                        TotalAmount = g.Key.TotalAmount,
+                        AmountPaid = g.Key.AmountPaid,
+                        Change = g.Key.Change,
+                        ContactPerson = g.Key.ContactPerson,
+                        ContactNumber = g.Key.ContactNumber,
+                        ContactAddress = g.Key.ContactAddress,
+                        Products = string.Join(", ", g.Select(o => o.Products))
+                    })
+                    .OrderByDescending(x => x.CreateDate)
+                    .ToList();
 
-                    result.JsonResultObject = orders;
-                    result.Message = "You get all your orders";
-                    result.IsSuccess = true;
-
-                    return result;
-                }
+                result.JsonResultObject = orders;
+                result.Message = "You get all your orders";
+                result.IsSuccess = true;
             }
-
             catch
             {
                 result.Message = "Unable to get all your orders";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
 
         [HttpPost("adminOrders")]
@@ -114,90 +96,67 @@ namespace SariKartAPI.Controllers
 
             try
             {
+                var name = searchOrderFilterDataInput.customerName ?? string.Empty;
 
-                using (var db = new SariKartContext())
-                {
-                    var orders = new List<OrderListItemDataOutput>();
-
-                    var query = from o in db.ShopOrders
-                                join u in db.AppUsers on o.UserId equals u.Id
-                                join ol in db.OrderLines on o.Id equals ol.OrderId
-                                join p in db.Products on ol.ProductId equals p.Id
-                                where o.OrderStatusId == searchOrderFilterDataInput.orderStatusId
-                                where u.FirstName.Contains(searchOrderFilterDataInput.customerName) || u.LastName.Contains(searchOrderFilterDataInput.customerName)
-                                select new OrderListItemDataOutput
-                                {
-                                    OrderId = o.Id,
-                                    FirstName = u.FirstName,
-                                    LastName = u.LastName,
-                                    CreateDate = o.CreateDate,
-                                    TotalAmount = o.TotalAmount,
-                                    AmountPaid = o.AmountPaid,
-                                    Change = o.Change,
-                                    ContactPerson = o.ContactPerson,
-                                    ContactNumber = o.ContactNumber,
-                                    ContactAddress = o.ContactAddress,
-                                    Products = p.Product1
-                                };
-
-                    foreach (var item in query)
+                var orders = _db.ShopOrders.AsNoTracking()
+                    .Where(o => o.OrderStatusId == searchOrderFilterDataInput.orderStatusId)
+                    .Where(o => o.User.FirstName.Contains(name) || o.User.LastName.Contains(name))
+                    .SelectMany(o => o.OrderLines.Select(ol => new OrderListItemDataOutput
                     {
-                        orders.Add(item);
-                    }
-
-                    orders = orders
-                        .GroupBy(x => new {
-                            x.OrderId,
-                            x.FirstName,
-                            x.LastName,
-                            x.CreateDate,
-                            x.TotalAmount,
-                            x.AmountPaid,
-                            x.Change,
-                            x.ContactPerson,
-                            x.ContactNumber,
-                            x.ContactAddress
-                        })
-                        .Select(o => new OrderListItemDataOutput
-                        {
-                            OrderId = o.Key.OrderId,
-                            FirstName = o.Key.FirstName,
-                            LastName = o.Key.LastName,
-                            CreateDate = o.Key.CreateDate,
-                            TotalAmount = o.Key.TotalAmount,
-                            AmountPaid = o.Key.AmountPaid,
-                            Change = o.Key.Change,
-                            ContactPerson = o.Key.ContactPerson,
-                            ContactNumber = o.Key.ContactNumber,
-                            ContactAddress = o.Key.ContactAddress,
-                            Products = string.Join(", ", o.Select(o => o.Products))
-                        }).ToList();
-
-                    if (searchOrderFilterDataInput.orderStatusId == 4)
+                        OrderId = o.Id,
+                        FirstName = o.User.FirstName,
+                        LastName = o.User.LastName,
+                        CreateDate = o.CreateDate,
+                        TotalAmount = o.TotalAmount,
+                        AmountPaid = o.AmountPaid,
+                        Change = o.Change,
+                        ContactPerson = o.ContactPerson,
+                        ContactNumber = o.ContactNumber,
+                        ContactAddress = o.ContactAddress,
+                        Products = ol.Product.Product1
+                    }))
+                    .ToList()
+                    .GroupBy(x => new
                     {
-                        orders = orders.OrderBy(x => x.CreateDate).ToList();
-                    }
-
-                    else
+                        x.OrderId,
+                        x.FirstName,
+                        x.LastName,
+                        x.CreateDate,
+                        x.TotalAmount,
+                        x.AmountPaid,
+                        x.Change,
+                        x.ContactPerson,
+                        x.ContactNumber,
+                        x.ContactAddress
+                    })
+                    .Select(g => new OrderListItemDataOutput
                     {
-                        orders = orders.OrderByDescending(x => x.CreateDate).ToList();
-                    }
+                        OrderId = g.Key.OrderId,
+                        FirstName = g.Key.FirstName,
+                        LastName = g.Key.LastName,
+                        CreateDate = g.Key.CreateDate,
+                        TotalAmount = g.Key.TotalAmount,
+                        AmountPaid = g.Key.AmountPaid,
+                        Change = g.Key.Change,
+                        ContactPerson = g.Key.ContactPerson,
+                        ContactNumber = g.Key.ContactNumber,
+                        ContactAddress = g.Key.ContactAddress,
+                        Products = string.Join(", ", g.Select(o => o.Products))
+                    })
+                    .OrderByDescending(x => x.CreateDate)
+                    .ToList();
 
-                    result.JsonResultObject = orders;
-                    result.Message = "You get all your orders";
-                    result.IsSuccess = true;
-
-                    return result;
-                }
+                result.JsonResultObject = orders;
+                result.Message = "You get all your orders";
+                result.IsSuccess = true;
             }
-
             catch
             {
                 result.Message = "Unable to get all your orders";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
 
         [HttpGet("{orderId}")]
@@ -207,27 +166,22 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                var order = new ShopOrder();
+                var order = _db.ShopOrders.AsNoTracking()
+                    .Include(x => x.OrderStatus)
+                    .Include(x => x.OrderLines).ThenInclude(x => x.Product)
+                    .FirstOrDefault(x => x.Id == orderId);
 
-                using (var db = new SariKartContext())
-                {
-                    order = db.ShopOrders.Where(x => x.Id == orderId).Include(x => x.OrderStatus).Include(x => x.OrderLines).ThenInclude(x => x.Product).FirstOrDefault();
-
-                    result.JsonResultObject = order;
-                    result.Message = "You get all your current order";
-                    result.IsSuccess = true;
-
-                    return result;
-                }
+                result.JsonResultObject = order;
+                result.Message = "You get all your current order";
+                result.IsSuccess = true;
             }
-
             catch
             {
                 result.Message = "Unable to get all your current order";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
 
         [HttpGet("orderStatus")]
@@ -237,36 +191,28 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                var orderStatuses = new List<OrderStatus>();
+                var orderStatuses = _db.OrderStatuses.AsNoTracking().ToList();
 
-                using (var db = new SariKartContext())
-                {
-                    orderStatuses = db.OrderStatuses.ToList();
-
-                    result.JsonResultObject = orderStatuses;
-                    result.Message = "You get order statuses";
-                    result.IsSuccess = true;
-
-                    return result;
-                }
+                result.JsonResultObject = orderStatuses;
+                result.Message = "You get order statuses";
+                result.IsSuccess = true;
             }
-
             catch
             {
                 result.Message = "Unable to get order statuses";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
 
         [HttpPost("add/{isCashOnHand}")]
-        public Result PlaceOrder(bool isCashOnHand, [FromBody] List<OrderLineDataInput> orderLineDataInputs) // This route updates current order delivery's cash on hand and creates an order
+        public Result PlaceOrder(bool isCashOnHand, [FromBody] List<OrderLineDataInput> orderLineDataInputs) // This route creates an order
         {
             var result = new Result();
 
             // If the customer doesn't add product into cart, notify the customer
-            if (orderLineDataInputs.Count == 0)
+            if (orderLineDataInputs == null || orderLineDataInputs.Count == 0)
             {
                 result.Message = "You have no order, please add items for order";
                 result.IsSuccess = false;
@@ -274,81 +220,75 @@ namespace SariKartAPI.Controllers
                 return result;
             }
 
-            var userId = orderLineDataInputs.Select(X => X.userId).FirstOrDefault();
+            var userId = orderLineDataInputs.Select(X => X.userId).First();
             var totalAmount = orderLineDataInputs.Sum(x => x.TotalAmount);
-
-            var contactPerson = orderLineDataInputs.Select(X => X.ContactPerson).FirstOrDefault();
-            var contactNumber = orderLineDataInputs.Select(X => X.ContactNumber).FirstOrDefault();
-            var contactAddress = orderLineDataInputs.Select(X => X.ContactAddress).FirstOrDefault();
+            var contactPerson = orderLineDataInputs.Select(x => x.ContactPerson).FirstOrDefault() ?? string.Empty;
+            var contactNumber = orderLineDataInputs.Select(x => x.ContactNumber).FirstOrDefault() ?? string.Empty;
+            var contactAddress = orderLineDataInputs.Select(x => x.ContactAddress).FirstOrDefault() ?? string.Empty;
 
             try
             {
-                using (var db = new SariKartContext())
+                var order = new ShopOrder
                 {
-                    var user = db.AppUsers.Where(x => x.Id == userId).FirstOrDefault();
-                    
-                    var order = new ShopOrder();
+                    UserId = userId,
+                    TotalAmount = totalAmount,
+                    ContactPerson = contactPerson,
+                    ContactNumber = contactNumber,
+                    ContactAddress = contactAddress
+                };
 
-                    order.UserId = userId;
-                    order.TotalAmount = totalAmount;
-                    order.ContactPerson = contactPerson;
-                    order.ContactNumber = contactNumber;
-                    order.ContactAddress = contactAddress;
+                _db.ShopOrders.Add(order);
 
-                    db.Add(order);
-                    db.SaveChanges();
+                // Add every order line and decrement stock in a single unit of work.
+                foreach (var item in orderLineDataInputs)
+                {
+                    var product = _db.Products.FirstOrDefault(x => x.Id == item.ProductId);
 
-                    // Add every order line in the order
-                    foreach (var item in orderLineDataInputs)
+                    if (product == null)
                     {
-                        var product = db.Products.Where(x => x.Id == item.ProductId).FirstOrDefault();
+                        result.Message = "Product with id " + item.ProductId + " not found";
+                        result.IsSuccess = false;
 
-                        product.Stock = product.Stock - item.Quantity;
-
-                        db.SaveChanges();
-
-                        var orderLine = new OrderLine();
-
-                        orderLine.OrderId = order.Id;
-                        orderLine.ProductId = item.ProductId;
-                        orderLine.Quantity = item.Quantity;
-
-                        db.Add(orderLine);
-                        db.SaveChanges();
+                        return result;
                     }
 
-                    // Add new delivery
-                    var delivery = new Delivery();
+                    product.Stock -= item.Quantity;
 
-                    delivery.OrderId = order.Id;
-                    delivery.StoreId = 1;
-                    delivery.RiderId = 1003;
-                    delivery.VehicleId = 1;
-                    delivery.Delivered = false;
-                    delivery.CashOnHand = isCashOnHand;
-                    delivery.DeliveryDate = DateTime.Now;
-
-                    db.Add(delivery);
-                    db.SaveChanges();
-
-                    result.Message = "You successfully placed an order";
-                    result.IsSuccess = true;
-
-                    return result;
+                    _db.OrderLines.Add(new OrderLine
+                    {
+                        Order = order,
+                        ProductId = item.ProductId,
+                        Quantity = item.Quantity
+                    });
                 }
-            }
 
+                _db.Deliveries.Add(new Delivery
+                {
+                    Order = order,
+                    StoreId = 1,
+                    RiderId = 1003,
+                    VehicleId = 1,
+                    Delivered = false,
+                    CashOnHand = isCashOnHand,
+                    DeliveryDate = DateTime.Now
+                });
+
+                _db.SaveChanges();
+
+                result.Message = "You successfully placed an order";
+                result.IsSuccess = true;
+            }
             catch
             {
                 result.Message = "Unable to place your order";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
 
         [HttpPost("delivery/save")]
-        public Result UpdateOrderDelivery([FromBody] OrderDeliveryDataInput orderDeliveryDataInput) // This route updates current order delivery 
+        public Result UpdateOrderDelivery([FromBody] OrderDeliveryDataInput orderDeliveryDataInput) // This route updates current order delivery
         {
             var result = new Result();
 
@@ -364,27 +304,7 @@ namespace SariKartAPI.Controllers
                     return result;
                 }
 
-                // Get the order total amount
-                using (var db = new SariKartContext())
-                {
-                    var totalAmount = db.ShopOrders.Where(o => o.Id == orderDeliveryDataInput.OrderId).Select(
-                            x => new
-                            {
-                                x.TotalAmount
-                            }
-                        ).FirstOrDefault();
-
-                    // Check if the amount paid should be greater that total amount
-                    if (totalAmount.TotalAmount > orderDeliveryDataInput.AmountPaid)
-                    {
-                        result.Message = "The amount paid should be higher than total amount";
-                        result.IsSuccess = false;
-
-                        return result;
-                    }
-                }
-
-                //Validate if amount paid is entered
+                // Validate if amount paid is entered and greater than total amount
                 if (orderDeliveryDataInput.AmountPaid <= 0)
                 {
                     result.Message = "Amount paid should be entered";
@@ -393,62 +313,65 @@ namespace SariKartAPI.Controllers
                     return result;
                 }
 
-                // Update delivery
-                using (var db = new SariKartContext())
+                var totalAmount = _db.ShopOrders
+                    .Where(o => o.Id == orderDeliveryDataInput.OrderId)
+                    .Select(x => x.TotalAmount)
+                    .FirstOrDefault();
+
+                if (totalAmount > orderDeliveryDataInput.AmountPaid)
                 {
-                    var delivery = db.Deliveries.Where(x => x.OrderId == orderDeliveryDataInput.OrderId).FirstOrDefault();
-
-                    if (delivery == null)
-                    {
-                        delivery = new Delivery();
-
-                        delivery.OrderId = orderDeliveryDataInput.OrderId;
-                        delivery.StoreId = orderDeliveryDataInput.StoreBranchId;
-                        delivery.RiderId = orderDeliveryDataInput.RiderId;
-                        delivery.VehicleId = orderDeliveryDataInput.VehicleId;
-                        delivery.Delivered = orderDeliveryDataInput.IsDelivered;
-                        delivery.DeliveryDate = DateTime.ParseExact(orderDeliveryDataInput.DeliveryDate, "MM/dd/yyyy", System.Globalization.CultureInfo.InvariantCulture);
-
-                        db.Add(delivery);
-                        db.SaveChanges();
-                    }
-
-                    else
-                    {
-                        delivery.OrderId = orderDeliveryDataInput.OrderId;
-                        delivery.StoreId = orderDeliveryDataInput.StoreBranchId;
-                        delivery.RiderId = orderDeliveryDataInput.RiderId;
-                        delivery.VehicleId = orderDeliveryDataInput.VehicleId;
-                        delivery.Delivered = orderDeliveryDataInput.IsDelivered;
-                        delivery.DeliveryDate = DateTime.ParseExact(orderDeliveryDataInput.DeliveryDate, "MM/dd/yyyy", System.Globalization.CultureInfo.InvariantCulture);
-
-                        db.SaveChanges();
-                    }
-
-                    var order = db.ShopOrders.Where(x => x.Id == orderDeliveryDataInput.OrderId).FirstOrDefault();
-
-                    order.OrderStatusId = orderDeliveryDataInput.OrderStatusId;
-                    order.AmountPaid = orderDeliveryDataInput.AmountPaid;
-                    order.Change = orderDeliveryDataInput.Change;
-
-                    db.SaveChanges();
-
-                    result.Message = "You successfully updated a current delivery";
-                    result.IsSuccess = true;
+                    result.Message = "The amount paid should be higher than total amount";
+                    result.IsSuccess = false;
 
                     return result;
                 }
-            }
 
+                var delivery = _db.Deliveries.FirstOrDefault(x => x.OrderId == orderDeliveryDataInput.OrderId);
+
+                var deliveryDate = DateTime.ParseExact(orderDeliveryDataInput.DeliveryDate, "MM/dd/yyyy", System.Globalization.CultureInfo.InvariantCulture);
+
+                if (delivery == null)
+                {
+                    _db.Deliveries.Add(new Delivery
+                    {
+                        OrderId = orderDeliveryDataInput.OrderId,
+                        StoreId = orderDeliveryDataInput.StoreBranchId,
+                        RiderId = orderDeliveryDataInput.RiderId,
+                        VehicleId = orderDeliveryDataInput.VehicleId,
+                        Delivered = orderDeliveryDataInput.IsDelivered,
+                        DeliveryDate = deliveryDate
+                    });
+                }
+                else
+                {
+                    delivery.StoreId = orderDeliveryDataInput.StoreBranchId;
+                    delivery.RiderId = orderDeliveryDataInput.RiderId;
+                    delivery.VehicleId = orderDeliveryDataInput.VehicleId;
+                    delivery.Delivered = orderDeliveryDataInput.IsDelivered;
+                    delivery.DeliveryDate = deliveryDate;
+                }
+
+                var order = _db.ShopOrders.FirstOrDefault(x => x.Id == orderDeliveryDataInput.OrderId);
+
+                if (order != null)
+                {
+                    order.OrderStatusId = orderDeliveryDataInput.OrderStatusId;
+                    order.AmountPaid = orderDeliveryDataInput.AmountPaid;
+                    order.Change = orderDeliveryDataInput.Change;
+                }
+
+                _db.SaveChanges();
+
+                result.Message = "You successfully updated a current delivery";
+                result.IsSuccess = true;
+            }
             catch
             {
                 result.Message = "Unable to update a current delivery";
                 result.IsSuccess = false;
-
-                return result;
             }
 
-            return null;
+            return result;
         }
 
         [HttpGet("delivery/{orderId}")]
@@ -458,27 +381,19 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                var delivery = new Delivery();
+                var delivery = _db.Deliveries.AsNoTracking().FirstOrDefault(x => x.OrderId == orderId);
 
-                using (var db = new SariKartContext())
-                {
-                    delivery = db.Deliveries.Where(x => x.OrderId == orderId).FirstOrDefault();
-
-                    result.JsonResultObject = delivery;
-                    result.Message = "You get current order delivery";
-                    result.IsSuccess = true;
-
-                    return result;
-                }
+                result.JsonResultObject = delivery;
+                result.Message = "You get current order delivery";
+                result.IsSuccess = true;
             }
-
             catch
             {
                 result.Message = "Unable to get current delivery";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
 
         [HttpPut("followUp/{orderId}")]
@@ -488,36 +403,38 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                using (var db = new SariKartContext())
+                var order = _db.ShopOrders.FirstOrDefault(x => x.Id == orderId);
+
+                if (order == null)
                 {
-                    var order = db.ShopOrders.Where(x => x.Id == orderId).FirstOrDefault();
+                    result.Message = "Order not found";
+                    result.IsSuccess = false;
 
-                    if (order.OrderStatusId == 4)
-                    {
-                        result.Message = "This order is already followed-up";
-                        result.IsSuccess = true;
+                    return result;
+                }
 
-                        return result;
-                    }
-
-                    order.OrderStatusId = 4;
-
-                    db.SaveChanges();
-
-                    result.Message = "You order has been followed-up";
+                if (order.OrderStatusId == 4)
+                {
+                    result.Message = "This order is already followed-up";
                     result.IsSuccess = true;
 
                     return result;
                 }
-            }
 
+                order.OrderStatusId = 4;
+
+                _db.SaveChanges();
+
+                result.Message = "You order has been followed-up";
+                result.IsSuccess = true;
+            }
             catch
             {
                 result.Message = "Unable to follow-up your order";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
 
         [HttpPut("cancel/{orderId}")]
@@ -527,36 +444,38 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                using (var db = new SariKartContext())
+                var order = _db.ShopOrders.FirstOrDefault(x => x.Id == orderId);
+
+                if (order == null)
                 {
-                    var order = db.ShopOrders.Where(x => x.Id == orderId).FirstOrDefault();
+                    result.Message = "Order not found";
+                    result.IsSuccess = false;
 
-                    if (order.OrderStatusId == 3)
-                    {
-                        result.Message = "This order is already cancelled";
-                        result.IsSuccess = true;
+                    return result;
+                }
 
-                        return result;
-                    }
-
-                    order.OrderStatusId = 3;
-
-                    db.SaveChanges();
-
-                    result.Message = "You order has been cancelled";
+                if (order.OrderStatusId == 3)
+                {
+                    result.Message = "This order is already cancelled";
                     result.IsSuccess = true;
 
                     return result;
                 }
-            }
 
+                order.OrderStatusId = 3;
+
+                _db.SaveChanges();
+
+                result.Message = "You order has been cancelled";
+                result.IsSuccess = true;
+            }
             catch
             {
                 result.Message = "Unable to cancel your order";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
 
         [HttpPut("editOrderContact")]
@@ -575,30 +494,32 @@ namespace SariKartAPI.Controllers
                     return result;
                 }
 
-                using (var db = new SariKartContext())
+                var order = _db.ShopOrders.FirstOrDefault(x => x.Id == orderContactDataInput.OrderId);
+
+                if (order == null)
                 {
-                    var order = db.ShopOrders.Where(x => x.Id == orderContactDataInput.OrderId).FirstOrDefault();
-
-                    order.ContactPerson = orderContactDataInput.ContactPerson;
-                    order.ContactNumber = orderContactDataInput.ContactNumber;
-                    order.ContactAddress = orderContactDataInput.ContactAddress;
-
-                    db.SaveChanges();
-
-                    result.Message = "You contact information for this order is successfully updated";
-                    result.IsSuccess = true;
+                    result.Message = "Order not found";
+                    result.IsSuccess = false;
 
                     return result;
                 }
-            }
 
+                order.ContactPerson = orderContactDataInput.ContactPerson;
+                order.ContactNumber = orderContactDataInput.ContactNumber;
+                order.ContactAddress = orderContactDataInput.ContactAddress;
+
+                _db.SaveChanges();
+
+                result.Message = "You contact information for this order is successfully updated";
+                result.IsSuccess = true;
+            }
             catch
             {
                 result.Message = "Unable to update the contact information of your current order";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
     }
 }

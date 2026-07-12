@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 /*
-    This controller performs different functions for product 
-*/
+    This controller performs different functions for product
+ */
 
 namespace SariKartAPI.Controllers
 {
@@ -13,6 +13,13 @@ namespace SariKartAPI.Controllers
     [Route("api/product")]
     public class ProductController : Controller
     {
+        private readonly SariKartContext _db;
+
+        public ProductController(SariKartContext db)
+        {
+            _db = db;
+        }
+
         [HttpGet("getProductImage/{id}/{filename}")]
         public async Task<IActionResult> GetImage(int id, string fileName)
         {
@@ -22,14 +29,10 @@ namespace SariKartAPI.Controllers
             if (System.IO.File.Exists(uploadPath))
             {
                 var fileBytes = await System.IO.File.ReadAllBytesAsync(uploadPath);
-                var outputFile = File(fileBytes, "image/png");
-                return outputFile;
+                return File(fileBytes, "image/png");
             }
 
-            else
-            {
-                return NotFound("Image not found");
-            }
+            return NotFound("Image not found");
         }
 
         [HttpGet("{categoryId}/{productKeyword}")]
@@ -39,52 +42,29 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                var products = new List<Product>();
+                var query = _db.Products.AsNoTracking().AsQueryable();
 
-                using (var db = new SariKartContext())
+                if (categoryId > 0)
                 {
-                    if (categoryId > 0)
-                    {
-
-                        if (productKeyword == "all")
-                        {
-                            products = db.Products.Where(x => x.CategoryId == categoryId).ToList();
-                        }
-
-                        else
-                        {
-                            products = db.Products.Where(x => x.CategoryId == categoryId && x.Product1.Contains(productKeyword)).ToList();
-                        }
-                    }
-                    
-                    else 
-                    {
-                        if (productKeyword == "all")
-                        {
-                            products = db.Products.ToList();
-                        }
-
-                        else
-                        {
-                            products = db.Products.Where(x => x.Product1.Contains(productKeyword)).ToList();
-                        }
-                    }
-
-                    result.JsonResultObject = products;
-                    result.Message = "You get all products";
-                    result.IsSuccess = true;
-
-                    return result;
+                    query = query.Where(x => x.CategoryId == categoryId);
                 }
-            }
 
+                if (!string.IsNullOrEmpty(productKeyword) && productKeyword != "all")
+                {
+                    query = query.Where(x => x.Product1.Contains(productKeyword));
+                }
+
+                result.JsonResultObject = query.ToList();
+                result.Message = "You get all products";
+                result.IsSuccess = true;
+            }
             catch
             {
                 result.Message = "Unable to get all products";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
 
         [HttpGet("{id}")]
@@ -94,28 +74,19 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                var product = new Product();
-
-                using (var db = new SariKartContext())
-                {
-                    product = db.Products.Where(x => x.Id == id).FirstOrDefault();
-                }
+                var product = _db.Products.AsNoTracking().FirstOrDefault(x => x.Id == id);
 
                 result.JsonResultObject = product;
                 result.Message = "You can get product details";
                 result.IsSuccess = true;
-
-                return result;
             }
-
             catch
             {
                 result.Message = "Unable to get product details";
                 result.IsSuccess = false;
-
-                return result;
             }
 
+            return result;
         }
 
         [HttpPost("add")]
@@ -137,53 +108,47 @@ namespace SariKartAPI.Controllers
                     return result;
                 }
 
-                // If all fields are entered, add this new product to the list
-                using (var db = new SariKartContext())
+                var currentProduct = new Product
                 {
-                    Product currentProduct = new Product();
+                    Product1 = product,
+                    CategoryId = categoryId,
+                    Price = price,
+                    Picture = file.FileName,
+                    Unit = unit,
+                    Stock = stock
+                };
 
-                    currentProduct.Product1 = product;
-                    currentProduct.CategoryId = categoryId;
-                    currentProduct.Price = price;
-                    currentProduct.Picture = file.FileName;
-                    currentProduct.Unit = unit;
-                    currentProduct.Stock = stock;
+                _db.Products.Add(currentProduct);
+                _db.SaveChanges();
 
-                    db.Add(currentProduct);
-                    db.SaveChanges();
+                // Define the path where the image will be stored
+                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Images\\Products\\" + currentProduct.Id.ToString());
 
-                    // Define the path where the image will be stored
-                    var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Images\\Products\\" + currentProduct.Id.ToString());
+                // Make folder of a category if not exists
+                if (!Directory.Exists(uploadPath))
+                {
+                    Directory.CreateDirectory(uploadPath);
+                }
 
-                    // Make folder of a category if not exists
-                    if (!Directory.Exists(uploadPath))
-                    {
-                        Directory.CreateDirectory(uploadPath);
-                    }
+                // Get the file's full path
+                var filePath = Path.Combine(uploadPath, file.FileName);
 
-                    // Get the file's full patht
-                    var filePath = Path.Combine(uploadPath, file.FileName);
-
-                    // Save the uploaded file
-                    using (var stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await file.CopyToAsync(stream);
-                    }
+                // Save the uploaded file
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
                 }
 
                 result.Message = "New product added successfully";
                 result.IsSuccess = true;
-
-                return result;
             }
-
-            catch(Exception e)
+            catch
             {
                 result.Message = "Unable to add new product";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
 
         [HttpPut("edit")]
@@ -205,57 +170,58 @@ namespace SariKartAPI.Controllers
                     return result;
                 }
 
-                // If all fields are entered, add this new product to the list
-                using (var db = new SariKartContext())
+                var currentProduct = _db.Products.FirstOrDefault(x => x.Id == id);
+
+                if (currentProduct == null)
                 {
-                    var currentProduct = db.Products.Where(x => x.Id == id).FirstOrDefault();
+                    result.Message = "Product not found";
+                    result.IsSuccess = false;
 
-                    currentProduct.Product1 = product;
-                    currentProduct.CategoryId = categoryId;
-                    currentProduct.Price = price;
-                    currentProduct.Unit = unit;
-                    currentProduct.Stock = stock;
+                    return result;
+                }
 
-                    if (file != null)
+                currentProduct.Product1 = product;
+                currentProduct.CategoryId = categoryId;
+                currentProduct.Price = price;
+                currentProduct.Unit = unit;
+                currentProduct.Stock = stock;
+
+                if (file != null)
+                {
+                    currentProduct.Picture = file.FileName;
+                }
+
+                _db.SaveChanges();
+
+                // If there are changes to the product file image
+                if (file != null)
+                {
+                    // Define the path where the image will be stored
+                    var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Images\\Products\\" + id.ToString());
+
+                    Directory.Delete(uploadPath, true); // Delete existing folder
+                    Directory.CreateDirectory(uploadPath); // Create new one as replacement
+
+                    // Get the file's full path
+                    var filePath = Path.Combine(uploadPath, file.FileName);
+
+                    // Save the uploaded file
+                    using (var stream = new FileStream(filePath, FileMode.Create))
                     {
-                        currentProduct.Picture = file.FileName;
-                    }
-
-                    db.SaveChanges();
-
-                    // If there are changes to the product file image
-                    if (file != null)
-                    {
-                        // Define the path where the image will be stored
-                        var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Images\\Products\\" + id.ToString());
-
-                        Directory.Delete(uploadPath, true); // Delete existing folder
-                        Directory.CreateDirectory(uploadPath); // Create new one as replacement
-
-                        // Get the file's full path
-                        var filePath = Path.Combine(uploadPath, file.FileName);
-
-                        // Save the uploaded file
-                        using (var stream = new FileStream(filePath, FileMode.Create))
-                        {
-                            await file.CopyToAsync(stream);
-                        }
+                        await file.CopyToAsync(stream);
                     }
                 }
 
                 result.Message = "Current product updated successfully";
                 result.IsSuccess = true;
-
-                return result;
             }
-
             catch
             {
                 result.Message = "Unable to update current product";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
 
         [HttpGet("productHistory/{year}/{month}")]
@@ -265,43 +231,28 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                var products = new List<ProductHistoryDataOutput>();
+                var products = _db.OrderLines.AsNoTracking()
+                    .Where(o => o.Order.CreateDate.Month == month && o.Order.CreateDate.Year == year)
+                    .GroupBy(p => p.Product.Product1)
+                    .Select(g => new ProductHistoryDataOutput
+                    {
+                        ProductName = g.Key,
+                        Quantity = g.Sum(x => x.Quantity)
+                    })
+                    .OrderByDescending(p => p.Quantity)
+                    .ToList();
 
-                using (var db = new SariKartContext())
-                {
-                    products = db.OrderLines
-                        .Include(o => o.Order)
-                        .Include(p => p.Product)
-                        .Where(o => o.Order.CreateDate.Month == month && o.Order.CreateDate.Year == year)
-                        .Select(p => new ProductHistoryDataOutput
-                        {
-                            ProductName = p.Product.Product1,
-                            Quantity = p.Quantity
-                        })
-                        .GroupBy(p => p.ProductName)
-                        .Select(p => new ProductHistoryDataOutput
-                        {
-                            ProductName = p.Key,
-                            Quantity = p.Sum(x => x.Quantity )
-                        })
-                        .OrderByDescending(p => p.Quantity)
-                        .ToList();
-
-                    result.JsonResultObject = products;
-                    result.Message = "You get all your sellable products history for this date";
-                    result.IsSuccess = true;
-
-                    return result;
-                }
+                result.JsonResultObject = products;
+                result.Message = "You get all your sellable products history for this date";
+                result.IsSuccess = true;
             }
-
             catch
             {
                 result.Message = "Unable to get all your sellable products history for this date";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
 
         [HttpGet("productHistory/{branchId}/{year}/{month}")]
@@ -311,51 +262,35 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                using (var db = new SariKartContext())
-                {
-                    var query = from d in db.Deliveries
-                                join o in db.ShopOrders on d.OrderId equals o.Id
-                                join ol in db.OrderLines on o.Id equals ol.OrderId
-                                join p in db.Products on ol.ProductId equals p.Id
-                                where o.CreateDate.Month == month
-                                where o.CreateDate.Year == year
-                                where d.StoreId == branchId
-                                select new ProductHistoryDataOutput
-                                {
-                                    ProductName = p.Product1,
-                                    Quantity = ol.Quantity
-                                };
-
-                    var productHistoryBranchList = new List<ProductHistoryDataOutput>();
-
-                    foreach (var item in query)
+                var productHistoryBranchList = _db.Deliveries.AsNoTracking()
+                    .Where(d => d.StoreId == branchId
+                                && d.Order.CreateDate.Month == month
+                                && d.Order.CreateDate.Year == year)
+                    .SelectMany(d => d.Order.OrderLines.Select(ol => new ProductHistoryDataOutput
                     {
-                        productHistoryBranchList.Add(item);
-                    }
+                        ProductName = ol.Product.Product1,
+                        Quantity = ol.Quantity
+                    }))
+                    .ToList()
+                    .GroupBy(x => x.ProductName)
+                    .Select(g => new ProductHistoryDataOutput
+                    {
+                        ProductName = g.Key,
+                        Quantity = g.Sum(x => x.Quantity)
+                    })
+                    .ToList();
 
-                    productHistoryBranchList = productHistoryBranchList
-                        .GroupBy(x => new {x.ProductName})
-                        .Select(p => new ProductHistoryDataOutput
-                        {
-                            ProductName = p.Key.ProductName,
-                            Quantity = p.Sum(x => x.Quantity)
-                        }).ToList();
-
-                    result.JsonResultObject = productHistoryBranchList;
-                    result.Message = "You get all your sellable products history for this date for this branch";
-                    result.IsSuccess = true;
-
-                    return result;
-                }
+                result.JsonResultObject = productHistoryBranchList;
+                result.Message = "You get all your sellable products history for this date for this branch";
+                result.IsSuccess = true;
             }
-
-            catch (Exception ex)
+            catch
             {
-                result.Message = ex.Message;
+                result.Message = "Unable to get all your sellable products history for this date for this branch";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
     }
 }

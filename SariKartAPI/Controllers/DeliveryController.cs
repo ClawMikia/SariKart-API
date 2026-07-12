@@ -1,10 +1,11 @@
 ﻿using SariKartAPI.Entities;
 using SariKartAPI.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 /*
-    This controller performs different functions for delivery 
-*/
+    This controller performs different functions for delivery
+ */
 
 namespace SariKartAPI.Controllers
 {
@@ -12,6 +13,13 @@ namespace SariKartAPI.Controllers
     [Route("api/delivery")]
     public class DeliveryController : Controller
     {
+        private readonly SariKartContext _db;
+
+        public DeliveryController(SariKartContext db)
+        {
+            _db = db;
+        }
+
         [HttpGet("{orderId}")]
         public Result GetOrderDelivery(int orderId) // This route gets an order delivery by order
         {
@@ -19,27 +27,19 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                var delivery = new Delivery();
+                var delivery = _db.Deliveries.AsNoTracking().FirstOrDefault(x => x.OrderId == orderId);
 
-                using (var db = new SariKartContext())
-                {
-                    delivery = db.Deliveries.Where(x => x.OrderId == orderId).FirstOrDefault();
-
-                    result.JsonResultObject = delivery;
-                    result.Message = "You get current delivery";
-                    result.IsSuccess = true;
-
-                    return result;
-                }
+                result.JsonResultObject = delivery;
+                result.Message = "You get current delivery";
+                result.IsSuccess = true;
             }
-
             catch
             {
                 result.Message = "Unable to get current delivery";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
     }
 }

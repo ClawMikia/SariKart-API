@@ -1,13 +1,13 @@
 ﻿using SariKartAPI.Entities;
 using SariKartAPI.Models;
 using Microsoft.AspNetCore.Mvc;
-using System;
+using Microsoft.EntityFrameworkCore;
 using System.IO;
 using static System.Net.Mime.MediaTypeNames;
 
 /*
-    This controller performs different functions for category 
-*/
+    This controller performs different functions for category
+ */
 
 namespace SariKartAPI.Controllers
 {
@@ -15,6 +15,13 @@ namespace SariKartAPI.Controllers
     [Route("api/category")]
     public class CategoryController : Controller
     {
+        private readonly SariKartContext _db;
+
+        public CategoryController(SariKartContext db)
+        {
+            _db = db;
+        }
+
         [HttpGet("getCategoryImage/{id}/{filename}")]
         public async Task<IActionResult> GetImage(int id, string fileName)
         {
@@ -24,14 +31,10 @@ namespace SariKartAPI.Controllers
             if (System.IO.File.Exists(uploadPath))
             {
                 var fileBytes = await System.IO.File.ReadAllBytesAsync(uploadPath);
-                var outputFile = File(fileBytes, "image/png");
-                return outputFile;
+                return File(fileBytes, "image/png");
             }
 
-            else
-            {
-                return NotFound("Image not found");
-            }
+            return NotFound("Image not found");
         }
 
         [HttpGet]
@@ -41,28 +44,19 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                var categories = new List<Category>();
+                var categories = _db.Categories.AsNoTracking().ToList();
 
-                using (var db = new SariKartContext())
-                {
-                    categories = db.Categories.ToList();
-
-                    result.JsonResultObject = categories;
-                    result.Message = "You get all categories";
-                    result.IsSuccess = true;
-
-                    return result;
-                }
+                result.JsonResultObject = categories;
+                result.Message = "You get all categories";
+                result.IsSuccess = true;
             }
-
             catch
             {
                 result.Message = "Unable to get all categories";
                 result.IsSuccess = false;
-
-                return result;
             }
 
+            return result;
         }
 
         [HttpGet("list")]
@@ -72,32 +66,24 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                var categories = new List<Category>();
-
-                using (var db = new SariKartContext())
-                {
-                    categories = db.Categories.Select(X => new Category
+                var categories = _db.Categories.AsNoTracking()
+                    .Select(X => new Category
                     {
                         Id = X.Id,
                         Category1 = X.Category1
                     }).ToList();
 
-                    result.JsonResultObject = categories;
-                    result.Message = "You get all categories";
-                    result.IsSuccess = true;
-
-                    return result;
-                }
+                result.JsonResultObject = categories;
+                result.Message = "You get all categories";
+                result.IsSuccess = true;
             }
-
             catch
             {
                 result.Message = "Unable to get all categories";
                 result.IsSuccess = false;
-
-                return result;
             }
 
+            return result;
         }
 
         [HttpPost("add")]
@@ -108,7 +94,7 @@ namespace SariKartAPI.Controllers
             try
             {
                 // Validate if all inputs are entered
-                if (categoryDataInput.Category.Length == 0 || categoryDataInput.Icon == null)
+                if (categoryDataInput.Category?.Length == 0 || categoryDataInput.Icon == null)
                 {
                     result.Message = "Please enter the required fields";
                     result.IsSuccess = false;
@@ -116,49 +102,43 @@ namespace SariKartAPI.Controllers
                     return result;
                 }
 
-                // If all fields are entered, add this new category to the list
-                using (var db = new SariKartContext())
+                var category = new Category
                 {
-                    Category category = new Category();
+                    Category1 = categoryDataInput.Category!,
+                    Icon = categoryDataInput.Icon!.FileName
+                };
 
-                    category.Category1 = categoryDataInput.Category;
-                    category.Icon = categoryDataInput.Icon.FileName;
+                _db.Categories.Add(category);
+                _db.SaveChanges();
 
-                    db.Add(category);
-                    db.SaveChanges();
+                // Define the path where the image will be stored
+                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Images\\Categories\\" + category.Id.ToString());
 
-                    // Define the path where the image will be stored
-                    var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Images\\Categories\\" + category.Id.ToString());
+                // Make folder of a category if not exists
+                if (!Directory.Exists(uploadPath))
+                {
+                    Directory.CreateDirectory(uploadPath);
+                }
 
-                    // Make folder of a category if not exists
-                    if (!Directory.Exists(uploadPath))
-                    {
-                        Directory.CreateDirectory(uploadPath);
-                    }
+                // Get the file's full path
+                var filePath = Path.Combine(uploadPath, categoryDataInput.Icon.FileName);
 
-                    // Get the file's full path
-                    var filePath = Path.Combine(uploadPath, categoryDataInput.Icon.FileName);
-
-                    // Save the uploaded file
-                    using (var stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await categoryDataInput.Icon.CopyToAsync(stream);
-                    }
+                // Save the uploaded file
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await categoryDataInput.Icon.CopyToAsync(stream);
                 }
 
                 result.Message = "New category added successfully";
                 result.IsSuccess = true;
-
-                return result;
             }
-
             catch
             {
                 result.Message = "Unable to add new category";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
 
         [HttpPut("edit")]
@@ -169,7 +149,7 @@ namespace SariKartAPI.Controllers
             try
             {
                 // Validate if all inputs are entered
-                if (categoryDataInput.Category.Length == 0 || categoryDataInput.Icon == null)
+                if (categoryDataInput.Category?.Length == 0 || categoryDataInput.Icon == null)
                 {
                     result.Message = "Please enter the required fields";
                     result.IsSuccess = false;
@@ -177,45 +157,46 @@ namespace SariKartAPI.Controllers
                     return result;
                 }
 
-                // If all fields are entered, add this new category to the list
-                using (var db = new SariKartContext())
+                var category = _db.Categories.FirstOrDefault(x => x.Id == categoryDataInput.Id);
+
+                if (category == null)
                 {
-                    var category = db.Categories.FirstOrDefault(x => x.Id == categoryDataInput.Id);
+                    result.Message = "Category not found";
+                    result.IsSuccess = false;
 
-                    category.Category1 = categoryDataInput.Category;
-                    category.Icon = categoryDataInput.Icon.FileName;
+                    return result;
+                }
 
-                    db.SaveChanges();
+                category.Category1 = categoryDataInput.Category!;
+                category.Icon = categoryDataInput.Icon!.FileName;
 
-                    // Define the path where the image will be stored
-                    var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Images\\Categories\\" + category.Id.ToString());
+                _db.SaveChanges();
 
-                    Directory.Delete(uploadPath, true); // Delete existing folder
-                    Directory.CreateDirectory(uploadPath); // Create new one as replacement
+                // Define the path where the image will be stored
+                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Images\\Categories\\" + category.Id.ToString());
 
-                    // Get the file's full path
-                    var filePath = Path.Combine(uploadPath, categoryDataInput.Icon.FileName);
+                Directory.Delete(uploadPath, true); // Delete existing folder
+                Directory.CreateDirectory(uploadPath); // Create new one as replacement
 
-                    // Save the uploaded file
-                    using (var stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await categoryDataInput.Icon.CopyToAsync(stream);
-                    }
+                // Get the file's full path
+                var filePath = Path.Combine(uploadPath, categoryDataInput.Icon.FileName);
+
+                // Save the uploaded file
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await categoryDataInput.Icon.CopyToAsync(stream);
                 }
 
                 result.Message = "Current category updated successfully";
                 result.IsSuccess = true;
-
-                return result;
             }
-
             catch
             {
                 result.Message = "Unable to update current category";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
     }
 }

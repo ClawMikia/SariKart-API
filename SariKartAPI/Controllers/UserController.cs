@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 /*
-    This controller performs different functions for user 
-*/
+    This controller performs different functions for user
+ */
 
 namespace SariKartAPI.Controllers
 {
@@ -13,6 +13,13 @@ namespace SariKartAPI.Controllers
     [Route("api/user")]
     public class UserController : Controller
     {
+        private readonly SariKartContext _db;
+
+        public UserController(SariKartContext db)
+        {
+            _db = db;
+        }
+
         [HttpPost("login")]
         public Result Login([FromBody] UserLoginDataInput userLoginDataInput) // API Controller Method for user login. If no data found, the input username and password in incorrect
         {
@@ -29,12 +36,8 @@ namespace SariKartAPI.Controllers
                     return result;
                 }
 
-                var user = new AppUser();
-
-                using (var db = new SariKartContext())
-                {
-                    user = db.AppUsers.Where(x => x.Username == userLoginDataInput.Username && x.Password == userLoginDataInput.Password).FirstOrDefault();
-                }
+                var user = _db.AppUsers.AsNoTracking()
+                    .FirstOrDefault(x => x.Username == userLoginDataInput.Username && x.Password == userLoginDataInput.Password);
 
                 // Check if the specific user exists
                 if (user != null)
@@ -46,23 +49,16 @@ namespace SariKartAPI.Controllers
                     return result;
                 }
 
-                else
-                {
-                    result.Message = "Incorrect username or password";
-                    result.IsSuccess = false;
-
-                    return result;
-                }
+                result.Message = "Incorrect username or password";
+                result.IsSuccess = false;
             }
-
             catch
             {
                 result.Message = "Unable to login user";
                 result.IsSuccess = false;
-
-                return result;
             }
 
+            return result;
         }
 
         [HttpGet("{id}")]
@@ -72,28 +68,21 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                var user = new AppUser();
-
-                using (var db = new SariKartContext())
-                {
-                    user = db.AppUsers.Where(x => x.Id == id).Include(x => x.UserStores).FirstOrDefault();
-                }
+                var user = _db.AppUsers.AsNoTracking()
+                    .Include(x => x.UserStores)
+                    .FirstOrDefault(x => x.Id == id);
 
                 result.JsonResultObject = user;
                 result.Message = "You can get your user account details";
                 result.IsSuccess = true;
-
-                return result;
             }
-
             catch
             {
                 result.Message = "Unable to get user account details";
                 result.IsSuccess = false;
-
-                return result;
             }
 
+            return result;
         }
 
         [HttpPost("add")]
@@ -103,23 +92,19 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                // Check if the account has already existed. if it is, the user will be asked to input different username
-                using (var db = new SariKartContext())
+                var existing = _db.AppUsers.AsNoTracking()
+                    .FirstOrDefault(x => x.Username == userDataInput.Username && x.Id != userDataInput.Id);
+
+                if (existing != null)
                 {
-                    var user = db.AppUsers.Where(x => x.Username == userDataInput.Username && x.Id != userDataInput.Id).FirstOrDefault();
+                    result.Message = "This user account " + userDataInput.Username + " already exists";
+                    result.IsSuccess = false;
 
-                    // Check if the specific user exists
-                    if (user != null)
-                    {
-                        result.Message = "This user account " + userDataInput.Username + " already exists";
-                        result.IsSuccess = false;
-
-                        return result;
-                    }
+                    return result;
                 }
 
                 // Validate if all inputs are entered
-                if (String.IsNullOrEmpty(userDataInput.Username) || String.IsNullOrEmpty(userDataInput.Firstname) || String.IsNullOrEmpty(userDataInput.Lastname) || String.IsNullOrEmpty(userDataInput.ContactNumber) || String.IsNullOrEmpty(userDataInput.Password) || String.IsNullOrEmpty(userDataInput.ConfirmPassword) || String.IsNullOrEmpty(userDataInput.UserStore.Address))
+                if (String.IsNullOrEmpty(userDataInput.Username) || String.IsNullOrEmpty(userDataInput.Firstname) || String.IsNullOrEmpty(userDataInput.Lastname) || String.IsNullOrEmpty(userDataInput.ContactNumber) || String.IsNullOrEmpty(userDataInput.Password) || String.IsNullOrEmpty(userDataInput.ConfirmPassword) || String.IsNullOrEmpty(userDataInput.UserStore?.Address))
                 {
                     result.Message = "Please enter the required fields";
                     result.IsSuccess = false;
@@ -128,7 +113,7 @@ namespace SariKartAPI.Controllers
                 }
 
                 // Validate that the password and confirmed password should match
-                else if (userDataInput.Password != userDataInput.ConfirmPassword)
+                if (userDataInput.Password != userDataInput.ConfirmPassword)
                 {
                     result.Message = "The new password should match with the confirm password";
                     result.IsSuccess = false;
@@ -136,48 +121,40 @@ namespace SariKartAPI.Controllers
                     return result;
                 }
 
-                else
+                var user = new AppUser
                 {
-                    using (var db = new SariKartContext())
-                    {
-                        var user = new AppUser();
+                    Username = userDataInput.Username,
+                    FirstName = userDataInput.Firstname,
+                    LastName = userDataInput.Lastname,
+                    Password = userDataInput.Password,
+                    ContactNumber = userDataInput.ContactNumber,
+                    UserTypeId = 1,
+                    EditableContactPerson = userDataInput.Firstname + " " + userDataInput.Lastname,
+                    EditableContactNumber = userDataInput.ContactNumber,
+                    EditableContactAddress = userDataInput.UserStore!.Address
+                };
 
-                        user.Username = userDataInput.Username;
-                        user.FirstName = userDataInput.Firstname;
-                        user.LastName = userDataInput.Lastname;
-                        user.Password = userDataInput.Password;
-                        user.ContactNumber = userDataInput.ContactNumber;
-                        user.UserTypeId = 1;
-                        user.EditableContactPerson = userDataInput.Firstname + " " + userDataInput.Lastname;
-                        user.EditableContactNumber = userDataInput.ContactNumber;
-                        user.EditableContactAddress = userDataInput.UserStore.Address;
+                _db.AppUsers.Add(user);
+                _db.SaveChanges();
 
-                        db.Add(user);
-                        db.SaveChanges();
+                _db.UserStores.Add(new UserStore
+                {
+                    UserId = user.Id,
+                    Address = userDataInput.UserStore.Address
+                });
 
-                        var userStore = new UserStore();
+                _db.SaveChanges();
 
-                        userStore.UserId = user.Id;
-                        userStore.Address = userDataInput.UserStore.Address;
-
-                        db.Add(userStore);
-                        db.SaveChanges();
-
-                        result.Message = "New user record is successfully registered";
-                        result.IsSuccess = true;
-
-                        return result;
-                    }
-                }
+                result.Message = "New user record is successfully registered";
+                result.IsSuccess = true;
             }
-
             catch
             {
                 result.Message = "Unable to register your user account";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
 
         [HttpPut("edit")]
@@ -188,7 +165,7 @@ namespace SariKartAPI.Controllers
             try
             {
                 // Validate if all inputs are entered
-                if (String.IsNullOrEmpty(userDataInput.Username) || String.IsNullOrEmpty(userDataInput.Firstname) || String.IsNullOrEmpty(userDataInput.Lastname) || String.IsNullOrEmpty(userDataInput.ContactNumber) || String.IsNullOrEmpty(userDataInput.UserStore.Address))
+                if (String.IsNullOrEmpty(userDataInput.Username) || String.IsNullOrEmpty(userDataInput.Firstname) || String.IsNullOrEmpty(userDataInput.Lastname) || String.IsNullOrEmpty(userDataInput.ContactNumber) || String.IsNullOrEmpty(userDataInput.UserStore?.Address))
                 {
                     result.Message = "Please enter the required fields";
                     result.IsSuccess = false;
@@ -196,61 +173,49 @@ namespace SariKartAPI.Controllers
                     return result;
                 }
 
-                else
+                var user = _db.AppUsers.FirstOrDefault(x => x.Id == userDataInput.Id);
+                var userStore = _db.UserStores.FirstOrDefault(x => x.UserId == userDataInput.Id);
+                var usernameExists = _db.AppUsers.AsNoTracking()
+                    .FirstOrDefault(x => x.Username == userDataInput.Username && x.Id != userDataInput.Id);
+
+                // Check if the specific user exists
+                if (user == null)
                 {
-                    // Check if the account has already existed. if it is, the user will be asked to input different username
-                    using (var db = new SariKartContext())
-                    {
-                        var user = db.AppUsers.Where(x => x.Id == userDataInput.Id).FirstOrDefault();
-                        var userStore = db.UserStores.Where(x => x.UserId == userDataInput.Id).FirstOrDefault();
-                        var usernameExists = db.AppUsers.Where(x => x.Username == userDataInput.Username && x.Id != userDataInput.Id).FirstOrDefault();
+                    result.Message = "No user data to update";
+                    result.IsSuccess = false;
 
-                        // Check if the specific user exists
-                        if (user == null)
-                        {
-                            result.Message = "No user data to update";
-                            result.IsSuccess = false;
-
-                            return result;
-                        }
-
-                        else
-                        {
-                            // Check if the specific username exists
-                            if (usernameExists != null)
-                            {
-                                result.Message = "This user account " + userDataInput.Username + " already exists";
-                                result.IsSuccess = false;
-
-                                return result;
-                            }
-
-                            user.Username = userDataInput.Username;
-                            user.FirstName = userDataInput.Firstname;
-                            user.LastName = userDataInput.Lastname;
-
-                            db.SaveChanges();
-
-                            userStore.Address = userDataInput.UserStore.Address;
-
-                            db.SaveChanges();
-
-                            result.Message = "Current user record is successfully updated";
-                            result.IsSuccess = true;
-
-                            return result;
-                        }
-                    }
+                    return result;
                 }
+
+                if (usernameExists != null)
+                {
+                    result.Message = "This user account " + userDataInput.Username + " already exists";
+                    result.IsSuccess = false;
+
+                    return result;
+                }
+
+                user.Username = userDataInput.Username;
+                user.FirstName = userDataInput.Firstname;
+                user.LastName = userDataInput.Lastname;
+
+                if (userStore != null)
+                {
+                    userStore.Address = userDataInput.UserStore!.Address;
+                }
+
+                _db.SaveChanges();
+
+                result.Message = "Current user record is successfully updated";
+                result.IsSuccess = true;
             }
-               
             catch
             {
                 result.Message = "Unable to update current user account";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
 
         [HttpPut("editAdminUser")]
@@ -269,56 +234,42 @@ namespace SariKartAPI.Controllers
                     return result;
                 }
 
-                else
+                var user = _db.AppUsers.FirstOrDefault(x => x.Id == userDataInput.Id);
+                var usernameExists = _db.AppUsers.AsNoTracking()
+                    .FirstOrDefault(x => x.Username == userDataInput.Username && x.Id != userDataInput.Id);
+
+                if (user == null)
                 {
-                    // Check if the account has already existed. if it is, the user will be asked to input different username
-                    using (var db = new SariKartContext())
-                    {
-                        var user = db.AppUsers.Where(x => x.Id == userDataInput.Id).FirstOrDefault();
-                        var usernameExists = db.AppUsers.Where(x => x.Username == userDataInput.Username && x.Id != userDataInput.Id).FirstOrDefault();
+                    result.Message = "No user data to update";
+                    result.IsSuccess = false;
 
-                        // Check if the specific user exists
-                        if (user == null)
-                        {
-                            result.Message = "No user data to update";
-                            result.IsSuccess = false;
-
-                            return result;
-                        }
-
-                        else
-                        {
-                            // Check if the specific username exists
-                            if (usernameExists != null)
-                            {
-                                result.Message = "This user account " + userDataInput.Username + " already exists";
-                                result.IsSuccess = false;
-
-                                return result;
-                            }
-
-                            user.Username = userDataInput.Username;
-                            user.FirstName = userDataInput.Firstname;
-                            user.LastName = userDataInput.Lastname;
-
-                            db.SaveChanges();
-
-                            result.Message = "Current user record is successfully updated";
-                            result.IsSuccess = true;
-
-                            return result;
-                        }
-                    }
+                    return result;
                 }
-            }
 
+                if (usernameExists != null)
+                {
+                    result.Message = "This user account " + userDataInput.Username + " already exists";
+                    result.IsSuccess = false;
+
+                    return result;
+                }
+
+                user.Username = userDataInput.Username;
+                user.FirstName = userDataInput.Firstname;
+                user.LastName = userDataInput.Lastname;
+
+                _db.SaveChanges();
+
+                result.Message = "Current user record is successfully updated";
+                result.IsSuccess = true;
+            }
             catch
             {
                 result.Message = "Unable to update current user account";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
 
         [HttpPut("editContact")]
@@ -337,46 +288,32 @@ namespace SariKartAPI.Controllers
                     return result;
                 }
 
-                else
+                var user = _db.AppUsers.FirstOrDefault(x => x.Id == userDataInput.Id);
+
+                if (user == null)
                 {
-                    // Check if the account has already existed. if it is, the user will be asked to input different username
-                    using (var db = new SariKartContext())
-                    {
-                        var user = db.AppUsers.Where(x => x.Id == userDataInput.Id).FirstOrDefault();
-                        
-                        // Check if the specific user exists
-                        if (user == null)
-                        {
-                            result.Message = "No user data to update";
-                            result.IsSuccess = false;
+                    result.Message = "No user data to update";
+                    result.IsSuccess = false;
 
-                            return result;
-                        }
-
-                        else
-                        {
-                            user.EditableContactPerson = userDataInput.EditableContactPerson;
-                            user.EditableContactNumber = userDataInput.EditableContactNumber;
-                            user.EditableContactAddress = userDataInput.EditableContactAddress;
-
-                            db.SaveChanges();
-
-                            result.Message = "Current user contact is successfully updated";
-                            result.IsSuccess = true;
-
-                            return result;
-                        }
-                    }
+                    return result;
                 }
-            }
 
+                user.EditableContactPerson = userDataInput.EditableContactPerson;
+                user.EditableContactNumber = userDataInput.EditableContactNumber;
+                user.EditableContactAddress = userDataInput.EditableContactAddress;
+
+                _db.SaveChanges();
+
+                result.Message = "Current user contact is successfully updated";
+                result.IsSuccess = true;
+            }
             catch
             {
                 result.Message = "Unable to update current user contact";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
 
         [HttpPut("changePassword")]
@@ -387,7 +324,7 @@ namespace SariKartAPI.Controllers
             try
             {
                 // Validate if all inputs are entered
-                if (userDataInput.Password.Length == 0 || userDataInput.ConfirmPassword.Length == 0)
+                if (userDataInput.Password?.Length == 0 || userDataInput.ConfirmPassword?.Length == 0)
                 {
                     result.Message = "Please enter the required fields";
                     result.IsSuccess = false;
@@ -404,43 +341,30 @@ namespace SariKartAPI.Controllers
                     return result;
                 }
 
-                else
+                var user = _db.AppUsers.FirstOrDefault(x => x.Id == userDataInput.Id);
+
+                if (user == null)
                 {
-                    using (var db = new SariKartContext())
-                    {
-                        var user = db.AppUsers.Where(x => x.Id == userDataInput.Id).FirstOrDefault();
+                    result.Message = "No user data for password update";
+                    result.IsSuccess = false;
 
-                        // Check if the specific user exists
-                        if (user == null)
-                        {
-                            result.Message = "No user data for password update";
-                            result.IsSuccess = false;
-
-                            return result;
-                        }
-
-                        else
-                        {
-                            user.Password = userDataInput.Password;
-
-                            db.SaveChanges();
-
-                            result.Message = "User password is successfully updated";
-                            result.IsSuccess = true;
-
-                            return result;
-                        }
-                    }
+                    return result;
                 }
-            }
 
+                user.Password = userDataInput.Password;
+
+                _db.SaveChanges();
+
+                result.Message = "User password is successfully updated";
+                result.IsSuccess = true;
+            }
             catch
             {
                 result.Message = "Unable to update your password";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
 
         [HttpGet("adminUser/{id}/{name}")] // This route gets admin users by search filter
@@ -450,37 +374,24 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                var users = new List<AppUser>();
-
-                using (var db = new SariKartContext())
-                {
-                    if (name == "all")
-                    {
-                        users = db.AppUsers.Where(x => x.UserTypeId == 2 && x.Id != id).Include(x => x.UserStores).ToList();
-                    }
-
-                    else
-                    {
-                        users = db.AppUsers.Where(x => x.FirstName.Contains(name) || x.LastName.Contains(name) || x.Username.Contains(name))
-                        .Where(x => x.UserTypeId == 2 && x.Id != id).ToList();
-                    }
-                }
+                var users = name == "all"
+                    ? _db.AppUsers.AsNoTracking().Where(x => x.UserTypeId == 2 && x.Id != id).Include(x => x.UserStores).ToList()
+                    : _db.AppUsers.AsNoTracking()
+                        .Where(x => x.UserTypeId == 2 && x.Id != id &&
+                                    (x.FirstName.Contains(name) || x.LastName.Contains(name) || x.Username.Contains(name)))
+                        .ToList();
 
                 result.JsonResultObject = users;
                 result.Message = "You can get the admin users";
                 result.IsSuccess = true;
-
-                return result;
             }
-
             catch
             {
                 result.Message = "Unable to get the admin users";
                 result.IsSuccess = false;
-
-                return result;
             }
 
+            return result;
         }
 
         [HttpGet("list/riders")]
@@ -490,33 +401,26 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                var riders = new List<AppUser>();
-
-                using (var db = new SariKartContext())
-                {
-                    riders = db.AppUsers.Where(x => x.UserTypeId == 3).Select(X => new AppUser
+                var riders = _db.AppUsers.AsNoTracking()
+                    .Where(x => x.UserTypeId == 3)
+                    .Select(X => new AppUser
                     {
                         Id = X.Id,
                         FirstName = X.FirstName,
                         LastName = X.LastName
                     }).ToList();
 
-                    result.JsonResultObject = riders;
-                    result.Message = "You get all riders list";
-                    result.IsSuccess = true;
-
-                    return result;
-                }
+                result.JsonResultObject = riders;
+                result.Message = "You get all riders list";
+                result.IsSuccess = true;
             }
-
             catch
             {
                 result.Message = "Unable to get all riders list";
                 result.IsSuccess = false;
-
-                return result;
             }
 
+            return result;
         }
 
         [HttpGet("rider/{name}")]
@@ -526,37 +430,24 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                var users = new List<AppUser>();
-
-                using (var db = new SariKartContext())
-                {
-                    if (name == "all")
-                    {
-                        users = db.AppUsers.Where(x => x.UserTypeId == 3).Include(x => x.UserStores).ToList();
-                    }
-
-                    else
-                    {
-                        users = db.AppUsers.Where(x => x.FirstName.Contains(name) || x.LastName.Contains(name) || x.Username.Contains(name))
-                        .Where(x => x.UserTypeId == 3).ToList();
-                    }
-                }
+                var users = name == "all"
+                    ? _db.AppUsers.AsNoTracking().Where(x => x.UserTypeId == 3).Include(x => x.UserStores).ToList()
+                    : _db.AppUsers.AsNoTracking()
+                        .Where(x => x.UserTypeId == 3 &&
+                                    (x.FirstName.Contains(name) || x.LastName.Contains(name) || x.Username.Contains(name)))
+                        .ToList();
 
                 result.JsonResultObject = users;
                 result.Message = "You can get the riders";
                 result.IsSuccess = true;
-
-                return result;
             }
-
             catch
             {
                 result.Message = "Unable to get the riders";
                 result.IsSuccess = false;
-
-                return result;
             }
 
+            return result;
         }
 
         [HttpGet("cashier/{name}")]
@@ -566,205 +457,59 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                var users = new List<AppUser>();
-
-                using (var db = new SariKartContext())
-                {
-                    if (name == "all")
-                    {
-                        users = db.AppUsers.Where(x => x.UserTypeId == 1003).ToList();
-                    }
-
-                    else
-                    {
-                        users = db.AppUsers.Where(x => x.FirstName.Contains(name) || x.LastName.Contains(name) || x.Username.Contains(name))
-                        .Where(x => x.UserTypeId == 1003).ToList();
-                    }
-                }
+                var users = name == "all"
+                    ? _db.AppUsers.AsNoTracking().Where(x => x.UserTypeId == 1003).ToList()
+                    : _db.AppUsers.AsNoTracking()
+                        .Where(x => x.UserTypeId == 1003 &&
+                                    (x.FirstName.Contains(name) || x.LastName.Contains(name) || x.Username.Contains(name)))
+                        .ToList();
 
                 result.JsonResultObject = users;
                 result.Message = "You can get the cashiers";
                 result.IsSuccess = true;
-
-                return result;
             }
-
             catch
             {
                 result.Message = "Unable to get the cashiers";
                 result.IsSuccess = false;
-
-                return result;
             }
 
+            return result;
         }
 
         [HttpPost("adminUser/add")] // This route adds new admin user record
         public Result AddAdminUser([FromBody] UserDataInput userDataInput)
         {
-            var result = new Result();
-
-            try
-            {
-                // Check if the account has already existed. if it is, the user will be asked to input different username
-                using (var db = new SariKartContext())
-                {
-                    var user = db.AppUsers.Where(x => x.Username == userDataInput.Username && x.Id != userDataInput.Id).FirstOrDefault();
-
-                    // Check if the specific username exists
-                    if (user != null)
-                    {
-                        result.Message = "This user account " + userDataInput.Username + " already exists";
-                        result.IsSuccess = false;
-
-                        return result;
-                    }
-                }
-
-                // Validate if all inputs are entered
-                if (String.IsNullOrEmpty(userDataInput.Username) || String.IsNullOrEmpty(userDataInput.Firstname) || String.IsNullOrEmpty(userDataInput.Lastname) || String.IsNullOrEmpty(userDataInput.ContactNumber) || String.IsNullOrEmpty(userDataInput.Password) || String.IsNullOrEmpty(userDataInput.ConfirmPassword))
-                {
-                    result.Message = "Please enter the required fields";
-                    result.IsSuccess = false;
-
-                    return result;
-                }
-
-                // Validate that the password and confirmed password should match
-                else if (userDataInput.Password != userDataInput.ConfirmPassword)
-                {
-                    result.Message = "The new password should match with the confirm password";
-                    result.IsSuccess = false;
-
-                    return result;
-                }
-
-                else
-                {
-                    using (var db = new SariKartContext())
-                    {
-                        var user = new AppUser();
-
-                        user.Username = userDataInput.Username;
-                        user.FirstName = userDataInput.Firstname;
-                        user.LastName = userDataInput.Lastname;
-                        user.Password = userDataInput.Password;
-                        user.UserTypeId = 2;
-                        user.ContactNumber = userDataInput.ContactNumber;
-
-                        db.Add(user);
-                        db.SaveChanges();
-
-                        result.Message = "New user record is successfully registered";
-                        result.IsSuccess = true;
-
-                        return result;
-                    }
-                }
-            }
-
-            catch
-            {
-                result.Message = "Unable to register new user account";
-                result.IsSuccess = false;
-
-                return result;
-            }
+            return AddUserByType(userDataInput, 2, "Unable to register new user account");
         }
 
         [HttpPost("rider/add")]
         public Result AddRider([FromBody] UserDataInput userDataInput) //This route adds new rider record
         {
-            var result = new Result();
-
-            try
-            {
-                // Check if the account has already existed. if it is, the user will be asked to input different username
-                using (var db = new SariKartContext())
-                {
-                    var user = db.AppUsers.Where(x => x.Username == userDataInput.Username && x.Id != userDataInput.Id).FirstOrDefault();
-
-                    // Check if the specific username exists
-                    if (user != null)
-                    {
-                        result.Message = "This user account " + userDataInput.Username + " already exists";
-                        result.IsSuccess = false;
-
-                        return result;
-                    }
-                }
-
-                // Validate if all inputs are entered
-                if (String.IsNullOrEmpty(userDataInput.Username) || String.IsNullOrEmpty(userDataInput.Firstname) || String.IsNullOrEmpty(userDataInput.Lastname) || String.IsNullOrEmpty(userDataInput.ContactNumber) || String.IsNullOrEmpty(userDataInput.Password) || String.IsNullOrEmpty(userDataInput.ConfirmPassword))
-                {
-                    result.Message = "Please enter the required fields";
-                    result.IsSuccess = false;
-
-                    return result;
-                }
-
-                // Validate that the password and confirmed password should match
-                else if (userDataInput.Password != userDataInput.ConfirmPassword)
-                {
-                    result.Message = "The new password should match with the confirm password";
-                    result.IsSuccess = false;
-
-                    return result;
-                }
-
-                else
-                {
-                    using (var db = new SariKartContext())
-                    {
-                        var user = new AppUser();
-
-                        user.Username = userDataInput.Username;
-                        user.FirstName = userDataInput.Firstname;
-                        user.LastName = userDataInput.Lastname;
-                        user.Password = userDataInput.Password;
-                        user.UserTypeId = 3;
-                        user.ContactNumber = userDataInput.ContactNumber;
-
-                        db.Add(user);
-                        db.SaveChanges();
-
-                        result.Message = "New user record is successfully registered";
-                        result.IsSuccess = true;
-
-                        return result;
-                    }
-                }
-            }
-
-            catch
-            {
-                result.Message = "Unable to register new user account";
-                result.IsSuccess = false;
-
-                return result;
-            }
+            return AddUserByType(userDataInput, 3, "Unable to register new user account");
         }
 
         [HttpPost("cashier/add")]
         public Result AddCashier([FromBody] UserDataInput userDataInput) //This route adds new cashier record
         {
+            return AddUserByType(userDataInput, 1003, "Unable to register new user account");
+        }
+
+        private Result AddUserByType(UserDataInput userDataInput, int userTypeId, string failureMessage)
+        {
             var result = new Result();
 
             try
             {
-                // Check if the account has already existed. if it is, the user will be asked to input different username
-                using (var db = new SariKartContext())
+                var existing = _db.AppUsers.AsNoTracking()
+                    .FirstOrDefault(x => x.Username == userDataInput.Username && x.Id != userDataInput.Id);
+
+                if (existing != null)
                 {
-                    var user = db.AppUsers.Where(x => x.Username == userDataInput.Username && x.Id != userDataInput.Id).FirstOrDefault();
+                    result.Message = "This user account " + userDataInput.Username + " already exists";
+                    result.IsSuccess = false;
 
-                    // Check if the specific user exists
-                    if (user != null)
-                    {
-                        result.Message = "This user account " + userDataInput.Username + " already exists";
-                        result.IsSuccess = false;
-
-                        return result;
-                    }
+                    return result;
                 }
 
                 // Validate if all inputs are entered
@@ -777,7 +522,7 @@ namespace SariKartAPI.Controllers
                 }
 
                 // Validate that the password and confirmed password should match
-                else if (userDataInput.Password != userDataInput.ConfirmPassword)
+                if (userDataInput.Password != userDataInput.ConfirmPassword)
                 {
                     result.Message = "The new password should match with the confirm password";
                     result.IsSuccess = false;
@@ -785,37 +530,28 @@ namespace SariKartAPI.Controllers
                     return result;
                 }
 
-                else
+                _db.AppUsers.Add(new AppUser
                 {
-                    using (var db = new SariKartContext())
-                    {
-                        var user = new AppUser();
+                    Username = userDataInput.Username,
+                    FirstName = userDataInput.Firstname,
+                    LastName = userDataInput.Lastname,
+                    Password = userDataInput.Password,
+                    UserTypeId = userTypeId,
+                    ContactNumber = userDataInput.ContactNumber
+                });
 
-                        user.Username = userDataInput.Username;
-                        user.FirstName = userDataInput.Firstname;
-                        user.LastName = userDataInput.Lastname;
-                        user.Password = userDataInput.Password;
-                        user.UserTypeId = 1003;
-                        user.ContactNumber = userDataInput.ContactNumber;
+                _db.SaveChanges();
 
-                        db.Add(user);
-                        db.SaveChanges();
-
-                        result.Message = "New user record is successfully registered";
-                        result.IsSuccess = true;
-
-                        return result;
-                    }
-                }
+                result.Message = "New user record is successfully registered";
+                result.IsSuccess = true;
             }
-
             catch
             {
-                result.Message = "Unable to register new user account";
+                result.Message = failureMessage;
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
 
         [HttpPut("adminUser/edit")]
@@ -825,19 +561,15 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                // Check if the account has already existed. if it is, the user will be asked to input different username
-                using (var db = new SariKartContext())
+                var user = _db.AppUsers.AsNoTracking()
+                    .FirstOrDefault(x => x.Username == userDataInput.Username && x.Id != userDataInput.Id);
+
+                if (user != null)
                 {
-                    var user = db.AppUsers.Where(x => x.Username == userDataInput.Username && x.Id != userDataInput.Id).FirstOrDefault();
+                    result.Message = "This user account " + userDataInput.Username + " already exists";
+                    result.IsSuccess = false;
 
-                    // Check if the specific user exists
-                    if (user != null)
-                    {
-                        result.Message = "This user account " + userDataInput.Username + " already exists";
-                        result.IsSuccess = false;
-
-                        return result;
-                    }
+                    return result;
                 }
 
                 // Validate if all inputs are entered
@@ -850,7 +582,7 @@ namespace SariKartAPI.Controllers
                 }
 
                 // Validate that the password and confirmed password should match
-                else if (userDataInput.Password != userDataInput.ConfirmPassword)
+                if (userDataInput.Password != userDataInput.ConfirmPassword)
                 {
                     result.Message = "The new password should match with the confirm password";
                     result.IsSuccess = false;
@@ -858,35 +590,34 @@ namespace SariKartAPI.Controllers
                     return result;
                 }
 
-                else
+                var existing = _db.AppUsers.FirstOrDefault(x => x.Id == userDataInput.Id);
+
+                if (existing == null)
                 {
-                    using (var db = new SariKartContext())
-                    {
-                        var user = db.AppUsers.Where(x => x.Id == userDataInput.Id).FirstOrDefault();
+                    result.Message = "No user data to update";
+                    result.IsSuccess = false;
 
-                        user.Username = userDataInput.Username;
-                        user.FirstName = userDataInput.Firstname;
-                        user.LastName = userDataInput.Lastname;
-                        user.Password = userDataInput.Password;
-                        user.ContactNumber = userDataInput.ContactNumber;
-
-                        db.SaveChanges();
-
-                        result.Message = "Current user record is successfully updated";
-                        result.IsSuccess = true;
-
-                        return result;
-                    }
+                    return result;
                 }
-            }
 
+                existing.Username = userDataInput.Username;
+                existing.FirstName = userDataInput.Firstname;
+                existing.LastName = userDataInput.Lastname;
+                existing.Password = userDataInput.Password;
+                existing.ContactNumber = userDataInput.ContactNumber;
+
+                _db.SaveChanges();
+
+                result.Message = "Current user record is successfully updated";
+                result.IsSuccess = true;
+            }
             catch
             {
                 result.Message = "Unable to update current user account";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
 
         [HttpGet("adminUser/get/{id}")]
@@ -896,30 +627,21 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                var user = new AppUser();
-
-                using (var db = new SariKartContext())
-                {
-                    user = db.AppUsers.Where(x => x.Id == id).FirstOrDefault();
-                }
+                var user = _db.AppUsers.AsNoTracking().FirstOrDefault(x => x.Id == id);
 
                 result.JsonResultObject = user;
                 result.Message = "You can get current user account details";
                 result.IsSuccess = true;
-
-                return result;
             }
-
             catch
             {
                 result.Message = "Unable to get current user account details";
                 result.IsSuccess = false;
-
-                return result;
             }
 
+            return result;
         }
-        
+
         [HttpDelete("adminUser/delete/{id}")]
         public Result DeleteAdminUser(int id) // This route deletes current admin user
         {
@@ -927,39 +649,30 @@ namespace SariKartAPI.Controllers
 
             try
             {
-                using (var db = new SariKartContext())
+                var adminUser = _db.AppUsers.FirstOrDefault(x => x.Id == id);
+
+                // Check if the specific user exists
+                if (adminUser == null)
                 {
-                    var adminUser = db.AppUsers.Where(x => x.Id == id).FirstOrDefault();
+                    result.Message = "No admin user to delete";
+                    result.IsSuccess = false;
 
-                    // Check if the specific user exists
-                    if (adminUser == null)
-                    {
-                        result.Message = "No admin user to delete";
-                        result.IsSuccess = false;
-
-                        return result;
-                    }
-
-                    else
-                    {
-                        db.AppUsers.Remove(adminUser);
-                        db.SaveChanges();
-
-                        result.Message = "Admin user is successfully deleted";
-                        result.IsSuccess = true;
-
-                        return result;
-                    }
+                    return result;
                 }
-            }
 
+                _db.AppUsers.Remove(adminUser);
+                _db.SaveChanges();
+
+                result.Message = "Admin user is successfully deleted";
+                result.IsSuccess = true;
+            }
             catch
             {
                 result.Message = "Unable to delete an admin user";
                 result.IsSuccess = false;
-
-                return result;
             }
+
+            return result;
         }
     }
 }
