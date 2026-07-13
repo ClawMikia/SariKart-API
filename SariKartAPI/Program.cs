@@ -1,61 +1,47 @@
 using SariKartAPI.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
-using System.IO;
 
-try
-{
-    var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
-    // Add services to the container.
-    builder.Services.AddControllers()
-        .AddJsonOptions(options =>
-        {
-            options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-            options.JsonSerializerOptions.WriteIndented = true;
-        });
-
-    // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-    builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
-
-    // Register the DbContext using the connection string from configuration.
-    builder.Services.AddDbContext<SariKartContext>(options =>
-        options.UseSqlServer(builder.Configuration.GetConnectionString("SariKartDb")));
-
-    // Allow the mobile/desktop clients to call the API cross-origin.
-    builder.Services.AddCors(options =>
+// Add services to the container.
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
     {
-        options.AddDefaultPolicy(policy =>
-            policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.WriteIndented = true;
     });
 
-    var app = builder.Build();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
-    // Configure the HTTP request pipeline.
-    if (app.Environment.IsDevelopment())
-    {
-        app.UseSwagger();
-        app.UseSwaggerUI();
-    }
+// Register the DbContext using the connection string from configuration.
+builder.Services.AddDbContext<SariKartContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("SariKartDb")));
 
-    // app.UseHttpsRedirection(); // disabled for LAN/phone access over plain HTTP
-
-    app.UseCors();
-
-    app.UseAuthorization();
-
-    app.MapControllers();
-
-    app.Run();
-}
-catch (Exception ex)
+// Allow the mobile/desktop clients to call the API cross-origin.
+builder.Services.AddCors(options =>
 {
-    try
-    {
-        var path = Path.Combine(AppContext.BaseDirectory, "startup-error.log");
-        File.WriteAllText(path, $"[{DateTime.UtcNow:O}] STARTUP FAILED{Environment.NewLine}{ex}");
-    }
-    catch { /* ignore write errors */ }
-    throw;
+    options.AddDefaultPolicy(policy =>
+        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+});
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
+
+// app.UseHttpsRedirection(); // disabled for LAN/phone access over plain HTTP
+
+app.UseCors();
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();

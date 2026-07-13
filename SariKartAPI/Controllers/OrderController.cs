@@ -296,7 +296,7 @@ namespace SariKartAPI.Controllers
             {
                 // Validate if all inputs are entered
                 if (orderDeliveryDataInput.StoreBranchId < 1 || orderDeliveryDataInput.RiderId < 1 || orderDeliveryDataInput.VehicleId < 1 ||
-                    orderDeliveryDataInput.OrderStatusId < 1 || orderDeliveryDataInput.DeliveryDate.IsNullOrEmpty())
+                    orderDeliveryDataInput.OrderStatusId < 1 || string.IsNullOrEmpty(orderDeliveryDataInput.DeliveryDate))
                 {
                     result.Message = "Please enter the required fields";
                     result.IsSuccess = false;
@@ -486,7 +486,7 @@ namespace SariKartAPI.Controllers
             try
             {
                 // Validate if all inputs are entered
-                if (orderContactDataInput.ContactPerson.IsNullOrEmpty() || orderContactDataInput.ContactNumber.IsNullOrEmpty() || orderContactDataInput.ContactAddress.IsNullOrEmpty())
+                if (string.IsNullOrEmpty(orderContactDataInput.ContactPerson) || string.IsNullOrEmpty(orderContactDataInput.ContactNumber) || string.IsNullOrEmpty(orderContactDataInput.ContactAddress))
                 {
                     result.Message = "Please enter the required fields";
                     result.IsSuccess = false;
