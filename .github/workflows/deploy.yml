@@ -23,7 +23,7 @@ jobs:
         run: dotnet build SariKartAPI/SariKartAPI.csproj --configuration Release --no-restore
 
       - name: Publish
-        run: dotnet publish SariKartAPI/SariKartAPI.csproj --configuration Release --output ./publish --runtime win-x86 --no-build
+        run: dotnet publish SariKartAPI/SariKartAPI.csproj --configuration Release --output ./publish --runtime win-x86
 
       - name: Deploy to MonsterASP.NET via WebDeploy
         uses: rasmusbuchholdt/simply-web-deploy@2.1.0
