@@ -17,13 +17,13 @@ jobs:
           dotnet-version: 6.0
 
       - name: Restore
-        run: dotnet restore SariKartAPI/SariKartAPI.csproj
+        run: dotnet restore SariKartAPI.NET6.csproj
 
       - name: Build
-        run: dotnet build SariKartAPI/SariKartAPI.csproj --configuration Release --no-restore
+        run: dotnet build SariKartAPI.NET6.csproj --configuration Release --no-restore
 
       - name: Publish
-        run: dotnet publish SariKartAPI/SariKartAPI.csproj --configuration Release --output ./publish --runtime win-x64 --self-contained true
+        run: dotnet publish SariKartAPI.NET6.csproj --configuration Release --output ./publish --runtime win-x64 --self-contained true
 
       - name: Use in-process hosting + enable stdout logging
         run: |
