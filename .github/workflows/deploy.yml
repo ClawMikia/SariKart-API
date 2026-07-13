@@ -25,12 +25,11 @@ jobs:
       - name: Publish
         run: dotnet publish SariKartAPI.NET6.csproj --configuration Release --output ./publish --runtime win-x64 --self-contained true
 
-      - name: Use in-process hosting + enable stdout logging
+      - name: Enable stdout logging
         run: |
           $cfg = "./publish/web.config"
           (Get-Content $cfg) `
             -replace 'stdoutLogEnabled="false"', 'stdoutLogEnabled="true"' `
-            -replace 'hostingModel="outofprocess"', 'hostingModel="inprocess"' `
             | Set-Content $cfg
           New-Item -ItemType Directory -Force -Path "./publish/logs" | Out-Null
 

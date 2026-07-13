@@ -1,23 +1,39 @@
 $ErrorActionPreference = "Stop"
 
-$ProjectDir         = "C:\Users\chris\OneDrive\Desktop\SariKart-API\SariKartAPI"
-$PublishDir         = Join-Path $ProjectDir "publish"
-$MsDeploy           = "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe"
-$PublishSettingsPath = "C:\Users\chris\OneDrive\Desktop\SariKart-API\infra\sarikart.runasp.net-WebDeploy.publishSettings"
+$RepoDir             = "C:\Users\chris\OneDrive\Desktop\SariKart-API"
+$ProjectFile         = Join-Path $RepoDir "SariKartAPI.NET6.csproj"
+$PublishDir          = Join-Path $RepoDir "publish"
+$MsDeploy            = "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe"
+$PublishSettingsPath = Join-Path $RepoDir "infra\sarikart.runasp.net-WebDeploy.publishSettings"
 
-Set-Location -LiteralPath $ProjectDir
+Set-Location -LiteralPath $RepoDir
 
-dotnet build -c Release
+# Clean previous build/publish output
+Remove-Item -Recurse -Force (Join-Path $RepoDir "bin") -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force (Join-Path $RepoDir "obj") -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force $PublishDir                   -ErrorAction SilentlyContinue
 
-dotnet publish -c Release -o $PublishDir
+dotnet build $ProjectFile -c Release
+
+dotnet publish $ProjectFile -c Release -r win-x64 --self-contained true -o $PublishDir
 
 # Read deploy settings from the .publishSettings file (avoids hardcoding credentials)
 [xml]$pub = Get-Content -LiteralPath $PublishSettingsPath
-$profile   = $pub.publishData.publishProfile
+$profile    = $pub.publishData.publishProfile
 $publishUrl = $profile.publishUrl
 $siteName   = $profile.msdeploySite
 $userName   = $profile.userName
 $userPWD    = $profile.userPWD
+
+# Ensure out-of-process hosting (matches CI) + stdout logging
+$cfg = Join-Path $PublishDir "web.config"
+if (Test-Path $cfg) {
+    (Get-Content $cfg) `
+        -replace 'stdoutLogEnabled="false"', 'stdoutLogEnabled="true"' `
+        -replace 'hostingModel="inprocess"', 'hostingModel="outofprocess"' `
+        | Set-Content $cfg
+}
+New-Item -ItemType Directory -Force -Path (Join-Path $PublishDir "logs") | Out-Null
 
 # Pre-check: fail fast if the Web Deploy host is unreachable; try 8172 then 443
 $deployPort = $null
@@ -45,3 +61,5 @@ $computerName = "https://$publishUrl$portSuffix/msdeploy.axd?site=$siteName"
     -enableRule:AppOffline `
     -useCheckSum
 
+# Clean up local publish artifacts after a successful deploy
+Remove-Item -Recurse -Force $PublishDir -ErrorAction SilentlyContinue
