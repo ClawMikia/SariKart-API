@@ -364,6 +364,7 @@ FodyWeavers.xsd
 appsettings.json
 appsettings.*.json
 !appsettings.Example.json
+!appsettings.json
 secrets.json
 
 # User secrets
