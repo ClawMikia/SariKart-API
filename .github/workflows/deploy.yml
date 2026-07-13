@@ -23,7 +23,7 @@ jobs:
         run: dotnet build SariKartAPI/SariKartAPI.csproj --configuration Release --no-restore
 
       - name: Publish
-        run: dotnet publish SariKartAPI/SariKartAPI.csproj --configuration Release --output ./publish --runtime win-x86
+        run: dotnet publish SariKartAPI/SariKartAPI.csproj --configuration Release --output ./publish --runtime win-x86 --self-contained true
 
       - name: Enable ASP.NET Core stdout logging
         run: |
