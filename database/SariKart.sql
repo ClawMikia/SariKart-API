@@ -9,7 +9,7 @@
 
 /* ---------------------------------------------------------------------------
    Lookup / reference tables
---------------------------------------------------------------------------- */
+---------------------------------------------------------------------------*/
 CREATE TABLE [UserType] (
     [Id]       INT           IDENTITY(1,1) PRIMARY KEY,
     [UserType] NVARCHAR(50)  NOT NULL
@@ -46,7 +46,7 @@ GO
 
 /* ---------------------------------------------------------------------------
    Users
---------------------------------------------------------------------------- */
+---------------------------------------------------------------------------*/
 CREATE TABLE [AppUser] (
     [Id]                     INT           IDENTITY(1,1) PRIMARY KEY,
     [FirstName]              NVARCHAR(50)  NOT NULL,
@@ -66,7 +66,7 @@ GO
 
 /* ---------------------------------------------------------------------------
    Products
---------------------------------------------------------------------------- */
+---------------------------------------------------------------------------*/
 CREATE TABLE [Product] (
     [Id]         INT           IDENTITY(1,1) PRIMARY KEY,
     [Product]    NVARCHAR(50)  NOT NULL,
@@ -82,7 +82,7 @@ GO
 
 /* ---------------------------------------------------------------------------
    Orders
---------------------------------------------------------------------------- */
+---------------------------------------------------------------------------*/
 CREATE TABLE [ShopOrder] (
     [Id]            INT           IDENTITY(1,1) PRIMARY KEY,
     [UserId]        INT           NOT NULL,
@@ -140,7 +140,7 @@ GO
 
 /* ---------------------------------------------------------------------------
    Indexes (performance)
---------------------------------------------------------------------------- */
+---------------------------------------------------------------------------*/
 CREATE INDEX [IX_AppUser_Username]   ON [AppUser]([Username]);
 CREATE INDEX [IX_AppUser_UserTypeId] ON [AppUser]([UserTypeId]);
 CREATE INDEX [IX_Product_CategoryId] ON [Product]([CategoryId]);
@@ -157,7 +157,7 @@ GO
 
 /* ---------------------------------------------------------------------------
    Seed data (lookups the application depends on)
---------------------------------------------------------------------------- */
+---------------------------------------------------------------------------*/
 SET IDENTITY_INSERT [UserType] ON;
 INSERT INTO [UserType] ([Id], [UserType]) VALUES
     (1,    'Customer'),
@@ -184,7 +184,6 @@ INSERT INTO [StoreBranch] ([Id], [Branch], [Street], [City], [Province]) VALUES
     (1, 'Main Branch', 'N/A', 'N/A', 'N/A');
 SET IDENTITY_INSERT [StoreBranch] OFF;
 
--- Default rider (RiderId = 1003) referenced by PlaceOrder, plus demo admin & cashier logins.
 SET IDENTITY_INSERT [AppUser] ON;
 INSERT INTO [AppUser] ([Id], [FirstName], [LastName], [Username], [Password], [ContactNumber], [UserTypeId]) VALUES
     (2,    'Admin',   'User',    'admin',   'admin',   '09123456789', 2),
@@ -192,10 +191,6 @@ INSERT INTO [AppUser] ([Id], [FirstName], [LastName], [Username], [Password], [C
     (1004, 'Demo',    'Cashier', 'cashier', 'cashier', 'N/A',         1003);
 SET IDENTITY_INSERT [AppUser] OFF;
 
-/* ---------------------------------------------------------------------------
-   Demo master data (categories + products) so the app is not empty on first run.
-   Safe to delete after loading real data.
---------------------------------------------------------------------------- */
 SET IDENTITY_INSERT [Category] ON;
 INSERT INTO [Category] ([Id], [Category], [Icon]) VALUES
     (1, 'Rice & Grains', 'rice.png'),
@@ -222,9 +217,6 @@ INSERT INTO [Product] ([Id], [Product], [CategoryId], [Price], [Unit], [Stock], 
     (12, 'Soy Sauce 350ml',       6, 22.00, 'bottle',  90, 'soy.png');
 SET IDENTITY_INSERT [Product] OFF;
 
-/* ---------------------------------------------------------------------------
-   Reseed identity columns so future inserts continue after the seeded ids
---------------------------------------------------------------------------- */
 DECLARE @max INT;
 SELECT @max = ISNULL(MAX([Id]), 1) FROM [UserType];     DBCC CHECKIDENT ('[UserType]', RESEED, @max);
 SELECT @max = ISNULL(MAX([Id]), 1) FROM [OrderStatus];  DBCC CHECKIDENT ('[OrderStatus]', RESEED, @max);

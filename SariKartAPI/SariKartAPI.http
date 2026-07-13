@@ -1,6 +1,0 @@
-@SariKartAPI_HostAddress = http://10.0.0.44:9000
-
-GET {{SariKartAPI_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
