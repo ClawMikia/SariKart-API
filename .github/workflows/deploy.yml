@@ -23,7 +23,16 @@ jobs:
         run: dotnet build SariKartAPI/SariKartAPI.csproj --configuration Release --no-restore
 
       - name: Publish
-        run: dotnet publish SariKartAPI/SariKartAPI.csproj --configuration Release --output ./publish --runtime win-x86
+        run: dotnet publish SariKartAPI/SariKartAPI.csproj --configuration Release --output ./publish --runtime win-x64 --self-contained true
+
+      - name: Use out-of-process hosting + enable stdout logging
+        run: |
+          $cfg = "./publish/web.config"
+          (Get-Content $cfg) `
+            -replace 'stdoutLogEnabled="false"', 'stdoutLogEnabled="true"' `
+            -replace 'hostingModel="inprocess"', 'hostingModel="outofprocess"' `
+            | Set-Content $cfg
+          New-Item -ItemType Directory -Force -Path "./publish/logs" | Out-Null
 
       - name: Deploy to MonsterASP.NET via WebDeploy
         uses: rasmusbuchholdt/simply-web-deploy@2.1.0
