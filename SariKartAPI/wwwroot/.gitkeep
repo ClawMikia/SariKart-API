@@ -1,0 +1,3 @@
+# Keep the wwwroot directory in source control even when empty
+*.*
+!.gitkeep

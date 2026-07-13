@@ -45,7 +45,7 @@ $computerName = "https://$publishUrl$portSuffix/msdeploy.axd?site=$siteName"
 & $MsDeploy `
     -verb:sync `
     -source:contentPath=$PublishDir `
-    -dest:contentPath=$siteName,computerName=$computerName,userName=$userName,password=$userPWD,authType='Basic' `
+    -dest:iisApp=$siteName,computerName=$computerName,userName=$userName,password=$userPWD,authType='Basic' `
     -allowUntrusted `
     -enableRule:AppOffline `
     -useCheckSum
