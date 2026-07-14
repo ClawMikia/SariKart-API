@@ -1,0 +1,17 @@
+namespace SariKartAPIV2.Models
+{
+    public class OrderListItemDataOutput
+    {
+        public int OrderId { get; set; }
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public DateTime? CreateDate { get; set; }
+        public decimal TotalAmount { get; set; }
+        public decimal AmountPaid { get; set; }
+        public decimal Change { get; set; }
+        public string? ContactPerson { get; set; }
+        public string? ContactNumber { get; set; }
+        public string? ContactAddress { get; set; }
+        public string? Products { get; set; }
+    }
+}
