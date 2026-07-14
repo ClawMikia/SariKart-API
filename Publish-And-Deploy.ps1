@@ -21,7 +21,7 @@ dotnet publish -c Release -o ./publish
 
 Remove-Item -Recurse -Force "bin\Release"
 Remove-Item -Recurse -Force "bin\debug"
-
+ 
 Remove-Item -Recurse -Force "publish"
 
 Remove-Item -Recurse -Force ".vscode"
