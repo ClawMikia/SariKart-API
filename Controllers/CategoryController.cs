@@ -24,8 +24,7 @@ namespace SariKartAPIV2.Controllers
 
         [HttpGet("getCategoryImage/{id}/{filename}")]
         public async Task<IActionResult> GetImage(int id, string fileName)
-        {
-            var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Images\\Categories\\" + id.ToString() + "\\" + fileName);
+        {]irectory(), "Images\\Categories\\" + id.ToString() + "\\" + fileName);
 
             if (System.IO.File.Exists(uploadPath))
             {
