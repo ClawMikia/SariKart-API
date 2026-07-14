@@ -53,7 +53,17 @@ namespace SariKartAPIV2.Controllers
                     query = query.Where(x => x.Product1.Contains(productKeyword));
                 }
 
-                result.JsonResultObject = query.ToList();
+                result.JsonResultObject = query.Select(x => new Product
+                {
+                    Id = x.Id,
+                    Product1 = x.Product1,
+                    CategoryId = x.CategoryId,
+                    Price = x.Price,
+                    Unit = x.Unit,
+                    Stock = x.Stock,
+                    Picture = string.IsNullOrEmpty(x.Picture) ? null : $"{Request.Scheme}://{Request.Host}/api/product/getProductImage/{x.Id}/{x.Picture}",
+                    Category = x.Category
+                }).ToList();
                 result.Message = "You get all products";
                 result.IsSuccess = true;
             }
@@ -74,6 +84,11 @@ namespace SariKartAPIV2.Controllers
             try
             {
                 var product = _db.Products.AsNoTracking().FirstOrDefault(x => x.Id == id);
+
+                if (product != null && !string.IsNullOrEmpty(product.Picture))
+                {
+                    product.Picture = $"{Request.Scheme}://{Request.Host}/api/product/getProductImage/{product.Id}/{product.Picture}";
+                }
 
                 result.JsonResultObject = product;
                 result.Message = "You can get product details";

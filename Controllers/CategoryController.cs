@@ -24,7 +24,8 @@ namespace SariKartAPIV2.Controllers
 
         [HttpGet("getCategoryImage/{id}/{filename}")]
         public async Task<IActionResult> GetImage(int id, string fileName)
-        {]irectory(), "Images\\Categories\\" + id.ToString() + "\\" + fileName);
+        {
+            var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Images\\Categories\\" + id.ToString() + "\\" + fileName);
 
             if (System.IO.File.Exists(uploadPath))
             {
@@ -42,9 +43,12 @@ namespace SariKartAPIV2.Controllers
 
             try
             {
-                var categories = _db.Categories.AsNoTracking().ToList();
-
-                result.JsonResultObject = categories;
+                result.JsonResultObject = _db.Categories.AsNoTracking().Select(x => new Category
+                {
+                    Id = x.Id,
+                    Category1 = x.Category1,
+                    Icon = string.IsNullOrEmpty(x.Icon) ? null : $"{Request.Scheme}://{Request.Host}/api/category/getCategoryImage/{x.Id}/{x.Icon}"
+                }).ToList();
                 result.Message = "You get all categories";
                 result.IsSuccess = true;
             }
@@ -64,14 +68,13 @@ namespace SariKartAPIV2.Controllers
 
             try
             {
-                var categories = _db.Categories.AsNoTracking()
+                result.JsonResultObject = _db.Categories.AsNoTracking()
                     .Select(X => new Category
                     {
                         Id = X.Id,
-                        Category1 = X.Category1
+                        Category1 = X.Category1,
+                        Icon = string.IsNullOrEmpty(X.Icon) ? null : $"{Request.Scheme}://{Request.Host}/api/category/getCategoryImage/{X.Id}/{X.Icon}"
                     }).ToList();
-
-                result.JsonResultObject = categories;
                 result.Message = "You get all categories";
                 result.IsSuccess = true;
             }
